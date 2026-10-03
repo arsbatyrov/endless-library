@@ -1,0 +1,56 @@
+# Автоматические обновления зависимостей: раз в неделю Dependabot открывает pull request с новыми версиями.
+# Каждый такой PR проходит те же проверки CI, что и любой другой.
+# Мелкие обновления (minor и patch) собираются в один PR на экосистему, чтобы не засыпать уведомлениями;
+# крупные (major) приходят отдельными PR: они чаще ломают совместимость.
+version: 2
+updates:
+  # Python: requirements.txt и requirements-dev.txt в корне
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      python-minor-patch:
+        update-types: [minor, patch]
+
+  # Frontend: frontend/package.json и package-lock.json
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+
+  # Версии GitHub Actions (закреплены по хешу: Dependabot обновляет хеш и комментарий с версией)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Базовые образы в Dockerfile
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+
+  # Образы в docker-compose.yml (postgres)
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday

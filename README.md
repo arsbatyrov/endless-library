@@ -1,5 +1,10 @@
 # Library API
 
+[![CI](https://github.com/arsbatyrov/library-api/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/arsbatyrov/library-api/actions/workflows/ci.yml)
+[![Security](https://github.com/arsbatyrov/library-api/actions/workflows/security.yml/badge.svg?branch=main)](https://github.com/arsbatyrov/library-api/actions/workflows/security.yml)
+[![Publish images](https://github.com/arsbatyrov/library-api/actions/workflows/publish.yml/badge.svg?branch=main)](https://github.com/arsbatyrov/library-api/actions/workflows/publish.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Учебный проект: REST API библиотеки (FastAPI + SQLAlchemy + PostgreSQL), на котором отрабатываем тестирование.
 
 ## Первый запуск
@@ -113,6 +118,18 @@ python -m playwright show-trace test-results/artifacts/<папка-теста>/t
 ```
 
 Логи серверов UI-тестов: `test-results/ui-servers/`.
+
+## Безопасность и сопровождение
+
+- **Dependabot** (`.github/dependabot.yml`): раз в неделю открывает pull request с обновлениями зависимостей
+  (Python, npm, GitHub Actions, базовые образы Docker); мелкие обновления собраны в один PR на экосистему.
+- **Проверки безопасности** (`.github/workflows/security.yml`): `pip-audit`, `npm audit`, сканер образов Trivy.
+  Запускаются на каждый PR, на `main` и раз в неделю; для слияния не обязательны (новая уязвимость в чужой
+  библиотеке не должна блокировать несвязанные изменения), красный результат сигнал обновить зависимость.
+- **CodeQL**: статический анализ кода на уязвимости (результаты на вкладке Security репозитория).
+- **Secret scanning и push protection**: GitHub блокирует отправку распознанных ключей и токенов.
+- Все GitHub Actions закреплены по хешу коммита (с комментарием о версии), хеши обновляет Dependabot.
+- В образах при сборке обновляются пакеты ОС (`apt-get upgrade` / `apk upgrade`): так закрываются исправленные уязвимости базового образа.
 
 ## Проверка кода
 
