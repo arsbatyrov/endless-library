@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "ci/**"]
+  pull_request:
+
+# Новый запуск для той же ветки отменяет предыдущий, ещё не закончившийся.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Минимально необходимые права токена: только чтение кода.
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests (Python 3.12, PostgreSQL 16)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # PostgreSQL запускается как соседний контейнер на время этого job.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: library
+          POSTGRES_PASSWORD: library
+          POSTGRES_DB: library
+        ports:
+          - 5432:5432
+        # Шаги ниже начнутся только когда база ответит на pg_isready.
+        options: >-
+          --health-cmd "pg_isready -U library -d library"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      # Тесты сами создадут отдельную базу library_test и применят миграции.
+      DATABASE_URL: postgresql+psycopg://library:library@127.0.0.1:5432/library
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests with coverage
+        run: pytest --cov-report=xml
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: ignore
