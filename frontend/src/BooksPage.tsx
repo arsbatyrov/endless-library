@@ -151,6 +151,8 @@ export function BooksPage() {
 
   return (
     <section>
+      <h2>Книги</h2>
+
       <div className="toolbar">
         <button
           type="button"
