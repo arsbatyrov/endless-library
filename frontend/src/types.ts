@@ -28,6 +28,21 @@ export interface ReaderInput {
   email: string;
 }
 
+// См. LoanRead и LoanReturnRead в app/schemas.py. Даты приходят строками ISO 8601 в UTC.
+export interface Loan {
+  id: number;
+  book_id: number;
+  reader_id: number;
+  issued_at: string;
+  due_at: string;
+  returned_at: string | null;
+}
+
+/** Ответ на возврат книги: выдача плюс размер штрафа. */
+export interface LoanReturn extends Loan {
+  fine: number;
+}
+
 /** Ошибка, которую форма показывает пользователю: общее сообщение и сообщения по полям. */
 export interface FormError {
   message: string;
