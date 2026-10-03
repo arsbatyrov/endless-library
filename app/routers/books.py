@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Book
 from app.schemas import BookCreate, BookRead
+from app.services.loans import ensure_book_has_no_loans
 
 router = APIRouter(prefix="/books", tags=["books"])
 
@@ -48,5 +49,6 @@ def update_book(book_id: int, data: BookCreate, db: Session = Depends(get_db)):
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_book(book_id: int, db: Session = Depends(get_db)):
     book = get_book_or_404(book_id, db)
+    ensure_book_has_no_loans(db, book_id)
     db.delete(book)
     db.commit()

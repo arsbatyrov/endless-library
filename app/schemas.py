@@ -31,6 +31,11 @@ class ReaderRead(ReaderCreate):
     id: int
 
 
+class LoanCreate(BaseModel):
+    book_id: int
+    reader_id: int
+
+
 class LoanRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -40,3 +45,9 @@ class LoanRead(BaseModel):
     issued_at: datetime
     due_at: datetime
     returned_at: datetime | None
+
+
+class LoanReturnRead(LoanRead):
+    """Ответ при возврате: выдача плюс размер штрафа."""
+
+    fine: int

@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Reader
-from app.schemas import ReaderCreate, ReaderRead
+from app.schemas import LoanRead, ReaderCreate, ReaderRead
+from app.services.loans import ensure_reader_has_no_loans, get_active_loans
 
 router = APIRouter(prefix="/readers", tags=["readers"])
 
@@ -48,6 +49,13 @@ def get_reader(reader_id: int, db: Session = Depends(get_db)):
     return get_reader_or_404(reader_id, db)
 
 
+@router.get("/{reader_id}/loans", response_model=list[LoanRead])
+def list_reader_active_loans(reader_id: int, db: Session = Depends(get_db)):
+    """Книги, которые сейчас на руках у читателя (ещё не возвращены)."""
+    get_reader_or_404(reader_id, db)
+    return get_active_loans(db, reader_id)
+
+
 @router.put("/{reader_id}", response_model=ReaderRead)
 def update_reader(reader_id: int, data: ReaderCreate, db: Session = Depends(get_db)):
     reader = get_reader_or_404(reader_id, db)
@@ -61,5 +69,6 @@ def update_reader(reader_id: int, data: ReaderCreate, db: Session = Depends(get_
 @router.delete("/{reader_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_reader(reader_id: int, db: Session = Depends(get_db)):
     reader = get_reader_or_404(reader_id, db)
+    ensure_reader_has_no_loans(db, reader_id)
     db.delete(reader)
     db.commit()
