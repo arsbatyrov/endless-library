@@ -10,3 +10,6 @@ htmlcov/
 # Фронтенд
 frontend/node_modules/
 frontend/dist/
+
+# Результаты UI-тестов (трассировки, видео, скриншоты, логи серверов)
+test-results/
