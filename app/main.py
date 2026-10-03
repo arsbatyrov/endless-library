@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from app import models  # noqa: F401  (импорт нужен, чтобы модели зарегистрировались в Base)
 from app.database import Base, engine
+from app.routers import books
 
 
 @asynccontextmanager
@@ -14,6 +15,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Library API", lifespan=lifespan)
+app.include_router(books.router)
 
 
 @app.get("/health")
