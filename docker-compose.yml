@@ -20,5 +20,49 @@ services:
       timeout: 3s
       retries: 10
 
+  # ---- Приложение целиком в контейнерах. Запуск: docker compose --profile full up -d --build ----
+  # Профиль full: обычная команда `docker compose up -d db` по-прежнему поднимает только базу.
+
+  # Разовая задача: накатывает миграции и завершается.
+  migrate:
+    profiles: ["full"]
+    build: .
+    image: library-api:local
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    profiles: ["full"]
+    build: .
+    image: library-api:local
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    # Наружу не публикуется: доступен только фронтенду по внутренней сети (имя api, порт 8000).
+    restart: unless-stopped
+
+  web:
+    profiles: ["full"]
+    build: ./frontend
+    image: library-web:local
+    environment:
+      API_UPSTREAM: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      # Адрес приложения: http://127.0.0.1:8080 (интерфейс), /api/... проксируется в API
+      - "127.0.0.1:8080:80"
+    restart: unless-stopped
+
 volumes:
   pgdata:
