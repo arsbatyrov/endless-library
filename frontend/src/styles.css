@@ -89,3 +89,24 @@ form {
 .row-actions span {
   margin-right: 8px;
 }
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid #d5d9de;
+}
+
+.tabs [role="tab"] {
+  margin: 0 0 -2px;
+  border: 2px solid transparent;
+  border-bottom: none;
+  background: none;
+}
+
+.tabs [role="tab"][aria-selected="true"] {
+  font-weight: 700;
+  background: #fff;
+  border-color: #d5d9de;
+  border-bottom: 2px solid #fff;
+}

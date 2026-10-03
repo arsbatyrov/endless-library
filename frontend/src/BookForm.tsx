@@ -1,7 +1,8 @@
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useState } from "react";
 
 import { ApiError, createBook, updateBook } from "./api";
-import type { Book, BookInput } from "./types";
+import { FormField } from "./FormField";
+import type { Book, BookInput, FormError } from "./types";
 
 interface Props {
   /** Если передана книга, форма её изменяет, иначе создаёт новую. */
@@ -16,13 +17,12 @@ function toNumber(text: string): number | null {
 }
 
 export function BookForm({ book, onSaved, onCancel }: Props) {
-  const idPrefix = useId();
   const [title, setTitle] = useState(book?.title ?? "");
   const [author, setAuthor] = useState(book?.author ?? "");
   const [year, setYear] = useState(book?.year?.toString() ?? "");
   const [copies, setCopies] = useState(book?.copies_available.toString() ?? "1");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<ApiError | { message: string; fieldErrors: Record<string, string> } | null>(null);
+  const [error, setError] = useState<FormError | null>(null);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -40,43 +40,15 @@ export function BookForm({ book, onSaved, onCancel }: Props) {
       const saved = book ? await updateBook(book.id, input) : await createBook(input);
       onSaved(saved);
     } catch (caught) {
-      if (caught instanceof ApiError) {
-        setError(caught);
-      } else {
-        setError({ message: "Не удалось связаться с сервером", fieldErrors: {} });
-      }
+      setError(
+        caught instanceof ApiError ? caught : { message: "Не удалось связаться с сервером", fieldErrors: {} },
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
-  const fieldErrors = error?.fieldErrors ?? {};
-
-  // Поле с подписью (label связана с input через id), а ошибка сервера выводится под ним.
-  function field(name: string, label: string, value: string, set: (v: string) => void, type = "text") {
-    const inputId = `${idPrefix}-${name}`;
-    const errorId = `${inputId}-error`;
-    const message = fieldErrors[name];
-    return (
-      <div className="field">
-        <label htmlFor={inputId}>{label}</label>
-        <input
-          id={inputId}
-          type={type}
-          value={value}
-          data-testid={`book-form-${name}`}
-          aria-invalid={message ? true : undefined}
-          aria-describedby={message ? errorId : undefined}
-          onChange={(event) => set(event.target.value)}
-        />
-        {message && (
-          <p id={errorId} className="field-error" data-testid={`book-form-error-${name}`}>
-            {message}
-          </p>
-        )}
-      </div>
-    );
-  }
+  const errors = error?.fieldErrors ?? {};
 
   return (
     <form onSubmit={handleSubmit} noValidate data-testid="book-form" aria-label={book ? "Изменение книги" : "Новая книга"}>
@@ -88,10 +60,18 @@ export function BookForm({ book, onSaved, onCancel }: Props) {
         </p>
       )}
 
-      {field("title", "Название", title, setTitle)}
-      {field("author", "Автор", author, setAuthor)}
-      {field("year", "Год издания", year, setYear, "number")}
-      {field("copies_available", "Количество экземпляров", copies, setCopies, "number")}
+      <FormField testIdPrefix="book-form" name="title" label="Название" value={title} onChange={setTitle} error={errors.title} />
+      <FormField testIdPrefix="book-form" name="author" label="Автор" value={author} onChange={setAuthor} error={errors.author} />
+      <FormField testIdPrefix="book-form" name="year" label="Год издания" type="number" value={year} onChange={setYear} error={errors.year} />
+      <FormField
+        testIdPrefix="book-form"
+        name="copies_available"
+        label="Количество экземпляров"
+        type="number"
+        value={copies}
+        onChange={setCopies}
+        error={errors.copies_available}
+      />
 
       <div className="actions">
         <button type="submit" disabled={submitting} data-testid="book-form-submit">
