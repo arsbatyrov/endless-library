@@ -8,7 +8,7 @@ class LoansPage:
 
     def __init__(self, page: Page):
         self.page = page
-        self.reader_select = page.get_by_label("Читатель")
+        self.reader_select = page.get_by_label("Читатель", exact=True)
         self.pick_reader_hint = page.get_by_test_id("loans-pick-reader")
         self.form = page.get_by_test_id("loan-form")
         self.issue_button = page.get_by_test_id("loans-issue")
