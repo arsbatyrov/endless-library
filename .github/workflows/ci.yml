@@ -100,9 +100,11 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: requirements-dev.txt
 
+      # Нужны и dev-зависимости: при сборе тестов импортируется playwright (UI-тесты отключены маркером).
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
 
       - name: Run tests with coverage
         # Сборка падает, если покрытие ниже 95% (сейчас 98%).

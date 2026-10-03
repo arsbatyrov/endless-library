@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pytest
 from alembic import command
@@ -44,10 +45,13 @@ def pytest_collection_modifyitems(items):
     """Автоматически помечает маркером `db` все тесты, которым нужна база (через фикстуры).
 
     Тесты без базы можно запускать отдельно и без Docker: pytest -m "not db"
+    Тестам из папки tests/ui ставится маркер `ui` (по умолчанию они не запускаются: pytest -m ui).
     """
     for item in items:
         if DB_FIXTURES & set(item.fixturenames):
             item.add_marker(pytest.mark.db)
+        if "ui" in Path(str(item.fspath)).parts:
+            item.add_marker(pytest.mark.ui)
 
 
 @pytest.fixture(scope="session")
