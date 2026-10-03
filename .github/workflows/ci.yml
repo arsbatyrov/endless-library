@@ -15,6 +15,45 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Check formatting
+        run: ruff format --check .
+
+      # ВРЕМЕННО: если проверки выше упали, готовим патч с исправлениями, чтобы применить его локально.
+      - name: Produce fixes patch
+        if: failure()
+        run: |
+          ruff check --fix . || true
+          ruff format .
+          git diff > ruff-fixes.patch
+          ruff check . --output-format=concise || true
+
+      - name: Upload fixes patch
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ruff-fixes
+          path: ruff-fixes.patch
+          if-no-files-found: ignore
+
   tests:
     name: Tests (Python 3.12, PostgreSQL 16)
     runs-on: ubuntu-latest
@@ -55,7 +94,8 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run tests with coverage
-        run: pytest --cov-report=xml
+        # Сборка падает, если покрытие ниже 95% (сейчас 98%).
+        run: pytest --cov-report=xml --cov-fail-under=95
 
       - name: Upload coverage report
         if: always()
