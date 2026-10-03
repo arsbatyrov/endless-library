@@ -52,6 +52,22 @@ docker compose --profile full rm -sf api web migrate   # остановить и
 - Обычная команда `docker compose up -d db` по-прежнему поднимает только базу.
 - Рабочие зависимости образа: `requirements.txt` (прямые зависимости закреплены); тестовые и инструменты: `requirements-dev.txt`.
 
+### Готовые образы
+
+При каждом слиянии в `main` workflow `publish.yml` публикует образы в реестр GitHub:
+
+| Образ | Теги |
+|---|---|
+| `ghcr.io/arsbatyrov/library-api` | `latest`, `sha-<коммит>` (и `X.Y.Z` для тегов `vX.Y.Z`) |
+| `ghcr.io/arsbatyrov/library-web` | то же |
+
+```powershell
+docker pull ghcr.io/arsbatyrov/library-api:latest
+```
+
+Образы собираются из тех же `Dockerfile`, которые проверяются в CI. Для развёртывания лучше брать тег
+`sha-<коммит>` (точная версия), а не `latest`.
+
 ## Тесты
 
 Нужна запущенная база (`docker compose up -d db`). Тесты используют отдельную базу
