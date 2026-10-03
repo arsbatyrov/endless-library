@@ -11,6 +11,10 @@ RUN npm run build
 
 # ---- этап 2: nginx отдаёт сборку и проксирует /api в API ----
 FROM nginx:alpine
+# Подтягиваем исправления безопасности для пакетов ОС: базовый образ может отставать от репозитория Alpine
+# (сканер Trivy в CI находил так уязвимости в libexpat и pcre2).
+RUN apk upgrade --no-cache
+
 # Файлы из templates обрабатываются при старте: ${API_UPSTREAM} подставляется из переменной окружения.
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
