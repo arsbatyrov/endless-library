@@ -3,4 +3,4 @@ uvicorn
 sqlalchemy
 pytest
 pytest-cov
-httpx
+httpx2
