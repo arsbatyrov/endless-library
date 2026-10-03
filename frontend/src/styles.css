@@ -1,0 +1,31 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  background: #f6f7f9;
+  color: #1b1f24;
+}
+
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e3e6ea;
+}
+
+[role="alert"] {
+  padding: 12px 16px;
+  border: 1px solid #e0a4a4;
+  background: #fdeeee;
+}
