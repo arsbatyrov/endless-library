@@ -6,8 +6,8 @@ class ReaderForm:
 
     def __init__(self, page: Page):
         self.root = page.get_by_test_id("reader-form")
-        self.name = page.get_by_label("Имя")
-        self.email = page.get_by_label("Email")
+        self.name = page.get_by_label("Имя", exact=True)
+        self.email = page.get_by_label("Email", exact=True)
         self.submit_button = page.get_by_test_id("reader-form-submit")
         self.cancel_button = page.get_by_test_id("reader-form-cancel")
         self.error = page.get_by_test_id("reader-form-error")

@@ -6,10 +6,10 @@ class BookForm:
 
     def __init__(self, page: Page):
         self.root = page.get_by_test_id("book-form")
-        self.title = page.get_by_label("Название")
-        self.author = page.get_by_label("Автор")
-        self.year = page.get_by_label("Год издания")
-        self.copies = page.get_by_label("Количество экземпляров")
+        self.title = page.get_by_label("Название", exact=True)
+        self.author = page.get_by_label("Автор", exact=True)
+        self.year = page.get_by_label("Год издания", exact=True)
+        self.copies = page.get_by_label("Количество экземпляров", exact=True)
         self.submit_button = page.get_by_test_id("book-form-submit")
         self.cancel_button = page.get_by_test_id("book-form-cancel")
         self.error = page.get_by_test_id("book-form-error")
