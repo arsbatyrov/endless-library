@@ -31,7 +31,11 @@ def issue_book(db: Session, book_id: int, reader_id: int, now: datetime) -> Loan
     reader = db.get(Reader, reader_id)
     if reader is None:
         raise NotFoundError("Reader not found")
-    book = db.get(Book, book_id)
+    # FOR UPDATE блокирует строку книги до конца транзакции: параллельный запрос на ту же книгу
+    # подождёт, а потом прочитает уже актуальное число экземпляров. Без блокировки два запроса
+    # могли бы одновременно увидеть «остался 1 экземпляр» и оба выдать его.
+    # populate_existing: перечитать значения из базы, а не взять устаревшие из памяти сессии.
+    book = db.get(Book, book_id, with_for_update=True, populate_existing=True)
     if book is None:
         raise NotFoundError("Book not found")
 
@@ -55,14 +59,17 @@ def issue_book(db: Session, book_id: int, reader_id: int, now: datetime) -> Loan
 
 def return_book(db: Session, loan_id: int, now: datetime) -> tuple[Loan, int]:
     """Возвращает книгу. Результат: (выдача, размер штрафа)."""
-    loan = db.get(Loan, loan_id)
+    # Блокируем выдачу: два одновременных возврата не смогут оба пройти проверку ниже.
+    loan = db.get(Loan, loan_id, with_for_update=True, populate_existing=True)
     if loan is None:
         raise NotFoundError("Loan not found")
     if loan.returned_at is not None:
         raise BusinessRuleError("Book already returned")
 
+    # Книгу тоже блокируем: счётчик экземпляров меняют и выдача, и возврат.
+    book = db.get(Book, loan.book_id, with_for_update=True, populate_existing=True)
     loan.returned_at = now
-    loan.book.copies_available += 1
+    book.copies_available += 1
     fine = calculate_fine(loan.due_at, now)
     db.commit()
     db.refresh(loan)
