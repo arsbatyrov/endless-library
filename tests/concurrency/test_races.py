@@ -9,7 +9,7 @@
 
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -19,7 +19,7 @@ from app.services import loans as loan_service
 from app.services.errors import BusinessRuleError
 from tests.factories import make_book, make_reader
 
-NOW = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
 
 
 def meet_in_the_middle_of(monkeypatch, function_name: str, timeout: float = 1.0) -> None:

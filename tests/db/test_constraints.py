@@ -6,7 +6,7 @@
 ошибки в коде, нового сервиса, ручной правки данных или скрипта миграции.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import psycopg.errors as pg
 import pytest
@@ -16,7 +16,7 @@ from sqlalchemy.exc import DataError, IntegrityError
 from app.models import Book, Loan, Reader
 from tests.factories import make_book, make_reader
 
-NOW = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
 
 
 def test_database_rejects_duplicate_reader_email(db):

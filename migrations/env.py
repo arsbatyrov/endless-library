@@ -17,6 +17,7 @@ if config.config_file_name is not None:
 # Модели, с которыми Alembic сравнивает базу при --autogenerate.
 target_metadata = Base.metadata
 
+
 # Адрес базы: можно переопределить в настройках Alembic (так делают тесты миграций),
 # иначе берётся DATABASE_URL приложения.
 def get_url() -> str:

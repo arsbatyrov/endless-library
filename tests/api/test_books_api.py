@@ -2,7 +2,6 @@ import pytest
 
 from tests.api.helpers import create_book, create_reader, issue_loan
 
-
 # ---------- создание ----------
 
 
@@ -33,14 +32,14 @@ def test_create_book_uses_defaults_for_optional_fields(client):
 @pytest.mark.parametrize(
     "payload",
     [
-        {"title": "", "author": "X"},                                   # пустое название
-        {"title": "T", "author": ""},                                   # пустой автор
-        {"author": "X"},                                                # нет названия
-        {"title": "T"},                                                 # нет автора
-        {"title": "T", "author": "X", "copies_available": -1},          # отрицательное количество
-        {"title": "T", "author": "X", "year": 2101},                    # год больше допустимого
-        {"title": "T", "author": "X", "year": "не число"},              # неверный тип
-        {"title": "T" * 201, "author": "X"},                            # слишком длинное название
+        {"title": "", "author": "X"},  # пустое название
+        {"title": "T", "author": ""},  # пустой автор
+        {"author": "X"},  # нет названия
+        {"title": "T"},  # нет автора
+        {"title": "T", "author": "X", "copies_available": -1},  # отрицательное количество
+        {"title": "T", "author": "X", "year": 2101},  # год больше допустимого
+        {"title": "T", "author": "X", "year": "не число"},  # неверный тип
+        {"title": "T" * 201, "author": "X"},  # слишком длинное название
     ],
 )
 def test_create_book_rejects_invalid_payload_with_422(client, payload):

@@ -12,8 +12,10 @@ MAX_ACTIVE_LOANS = 3
 
 
 def count_active_loans(db: Session, reader_id: int) -> int:
-    stmt = select(func.count()).select_from(Loan).where(
-        Loan.reader_id == reader_id, Loan.returned_at.is_(None)
+    stmt = (
+        select(func.count())
+        .select_from(Loan)
+        .where(Loan.reader_id == reader_id, Loan.returned_at.is_(None))
     )
     return db.scalar(stmt)
 

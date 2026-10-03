@@ -49,10 +49,16 @@ def describe_schema(engine) -> dict:
             ],
             "primary_key": inspector.get_pk_constraint(name)["constrained_columns"],
             "foreign_keys": sorted(
-                (tuple(fk["constrained_columns"]), fk["referred_table"], tuple(fk["referred_columns"]))
+                (
+                    tuple(fk["constrained_columns"]),
+                    fk["referred_table"],
+                    tuple(fk["referred_columns"]),
+                )
                 for fk in inspector.get_foreign_keys(name)
             ),
-            "unique": sorted(tuple(u["column_names"]) for u in inspector.get_unique_constraints(name)),
+            "unique": sorted(
+                tuple(u["column_names"]) for u in inspector.get_unique_constraints(name)
+            ),
         }
     return schema
 

@@ -32,12 +32,12 @@ def test_failed_duplicate_does_not_break_following_requests(client):
 @pytest.mark.parametrize(
     "payload",
     [
-        {"name": "", "email": "a@b.co"},          # пустое имя
-        {"name": "N"},                            # нет email
-        {"email": "a@b.co"},                      # нет имени
-        {"name": "N", "email": "not-an-email"},   # email без @
-        {"name": "N", "email": "a@b"},            # нет домена верхнего уровня
-        {"name": "N", "email": "a b@c.co"},       # пробел в email
+        {"name": "", "email": "a@b.co"},  # пустое имя
+        {"name": "N"},  # нет email
+        {"email": "a@b.co"},  # нет имени
+        {"name": "N", "email": "not-an-email"},  # email без @
+        {"name": "N", "email": "a@b"},  # нет домена верхнего уровня
+        {"name": "N", "email": "a b@c.co"},  # пробел в email
     ],
 )
 def test_create_reader_rejects_invalid_payload_with_422(client, payload):
@@ -83,7 +83,9 @@ def test_put_updates_reader(client):
 def test_put_with_own_email_is_not_a_conflict(client):
     reader = create_reader(client, email="mine@example.com")
 
-    response = client.put(f"/readers/{reader['id']}", json={"name": "Same", "email": "mine@example.com"})
+    response = client.put(
+        f"/readers/{reader['id']}", json={"name": "Same", "email": "mine@example.com"}
+    )
 
     assert response.status_code == 200
 
@@ -92,7 +94,9 @@ def test_put_with_email_of_another_reader_returns_409(client):
     create_reader(client, email="taken@example.com")
     other = create_reader(client, email="other@example.com")
 
-    response = client.put(f"/readers/{other['id']}", json={"name": "N", "email": "taken@example.com"})
+    response = client.put(
+        f"/readers/{other['id']}", json={"name": "N", "email": "taken@example.com"}
+    )
 
     assert response.status_code == 409
     assert client.get(f"/readers/{other['id']}").json()["email"] == "other@example.com"
