@@ -53,6 +53,10 @@ ruff check .            # поиск замечаний (ruff check --fix . ис
 ruff format .           # форматирование
 ```
 
+## Лицензия
+
+[MIT](LICENSE)
+
 ## Миграции
 
 ```powershell
