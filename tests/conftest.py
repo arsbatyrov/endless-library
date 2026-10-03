@@ -1,19 +1,17 @@
 import os
-from pathlib import Path
 
 import pytest
 from alembic import command
-from alembic.config import Config
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
-from sqlalchemy.exc import OperationalError
+
+from tests.db_utils import ROOT, alembic_config, ensure_database, reset_schema
 
 # ---------------------------------------------------------------------------
 # Адрес ТЕСТОВОЙ базы. Это нужно сделать до импорта приложения: app.database
 # читает DATABASE_URL при импорте, и в тестах он должен указывать на <имя>_test.
 # ---------------------------------------------------------------------------
-ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 
 _dev_url = os.environ.get("DATABASE_URL")
@@ -28,10 +26,6 @@ TEST_URL = make_url(_dev_url)
 if not TEST_URL.database.endswith("_test"):
     TEST_URL = TEST_URL.set(database=f"{TEST_URL.database}_test")
 
-# Защита: тесты стирают данные, поэтому работают только с базой, имя которой кончается на _test.
-if not TEST_URL.database.endswith("_test"):
-    pytest.exit("Refusing to run: test database name must end with '_test'", returncode=2)
-
 os.environ["DATABASE_URL"] = TEST_URL.render_as_string(hide_password=False)
 
 # Импорты приложения только после подмены DATABASE_URL (поэтому E402).
@@ -42,6 +36,9 @@ from app import models  # noqa: E402, F401  (регистрирует табли
 from app.database import Base, get_db  # noqa: E402
 from app.main import app  # noqa: E402
 
+# Тесты, использующие любую из этих фикстур (напрямую или через другие), работают с базой.
+DB_FIXTURES = {"engine", "migration_url"}
+
 
 def pytest_collection_modifyitems(items):
     """Автоматически помечает маркером `db` все тесты, которым нужна база (через фикстуры).
@@ -49,50 +46,19 @@ def pytest_collection_modifyitems(items):
     Тесты без базы можно запускать отдельно и без Docker: pytest -m "not db"
     """
     for item in items:
-        if "db" in item.fixturenames:
+        if DB_FIXTURES & set(item.fixturenames):
             item.add_marker(pytest.mark.db)
-
-
-def _prepare_test_database() -> None:
-    """Создаёт тестовую базу, если её нет, и накатывает на чистую схему все миграции."""
-    # connect_timeout: если база недоступна (например, Docker остановлен), тесты должны
-    # быстро остановиться с понятным сообщением, а не висеть на сетевом таймауте.
-    admin_engine = create_engine(
-        TEST_URL.set(database="postgres"),
-        isolation_level="AUTOCOMMIT",
-        connect_args={"connect_timeout": 5},
-    )
-    try:
-        with admin_engine.connect() as conn:
-            exists = conn.scalar(
-                text("select 1 from pg_database where datname = :name"),
-                {"name": TEST_URL.database},
-            )
-            if not exists:
-                conn.execute(text(f'CREATE DATABASE "{TEST_URL.database}"'))
-    except OperationalError as exc:
-        pytest.exit(
-            "Cannot connect to PostgreSQL. Is the database running? "
-            f"Start it with: docker compose up -d db\n\n{exc}",
-            returncode=3,
-        )
-    finally:
-        admin_engine.dispose()
-
-    # Чистый лист: сносим всё и применяем миграции с нуля. Так каждый запуск тестов
-    # заодно проверяет, что цепочка миграций применяется на пустой базе.
-    engine = create_engine(TEST_URL)
-    with engine.begin() as conn:
-        conn.execute(text("DROP SCHEMA public CASCADE"))
-        conn.execute(text("CREATE SCHEMA public"))
-    engine.dispose()
-    command.upgrade(Config(str(ROOT / "alembic.ini")), "head")
 
 
 @pytest.fixture(scope="session")
 def engine():
     """Один раз за весь запуск: готовая тестовая база со схемой из миграций."""
-    _prepare_test_database()
+    ensure_database(TEST_URL)
+    # Чистый лист: сносим всё и применяем миграции с нуля. Так каждый запуск тестов
+    # заодно проверяет, что цепочка миграций применяется на пустой базе.
+    reset_schema(TEST_URL)
+    command.upgrade(alembic_config(TEST_URL), "head")
+
     test_engine = create_engine(TEST_URL)
     yield test_engine
     test_engine.dispose()

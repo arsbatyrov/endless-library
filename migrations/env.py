@@ -17,6 +17,11 @@ if config.config_file_name is not None:
 # Модели, с которыми Alembic сравнивает базу при --autogenerate.
 target_metadata = Base.metadata
 
+# Адрес базы: можно переопределить в настройках Alembic (так делают тесты миграций),
+# иначе берётся DATABASE_URL приложения.
+def get_url() -> str:
+    return config.get_main_option("sqlalchemy.url") or DATABASE_URL
+
 
 def render_item(type_, obj, autogen_context):
     """Как записывать наши типы в файл миграции.
@@ -32,7 +37,7 @@ def render_item(type_, obj, autogen_context):
 def run_migrations_offline() -> None:
     """Режим «оффлайн»: не подключаемся к базе, а печатаем SQL-скрипт."""
     context.configure(
-        url=DATABASE_URL,
+        url=get_url(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -44,7 +49,7 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Обычный режим: подключаемся к базе по DATABASE_URL (тому же, что у приложения)."""
-    connectable = create_engine(DATABASE_URL, poolclass=pool.NullPool)
+    connectable = create_engine(get_url(), poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
         context.configure(
