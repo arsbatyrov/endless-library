@@ -1,7 +1,7 @@
 # Образ фронтенда. Сборка (из папки frontend): docker build -t library-web .
 
 # ---- этап 1: сборка статических файлов ----
-FROM node:24-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 # Сначала только манифесты: пока зависимости не менялись, слой npm ci берётся из кэша.
 COPY package.json package-lock.json ./
