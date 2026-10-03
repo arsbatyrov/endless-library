@@ -6,3 +6,4 @@ pytest-cov
 httpx2
 alembic
 psycopg[binary]
+python-dotenv

@@ -13,8 +13,9 @@ def utcnow() -> datetime:
 class UTCDateTime(TypeDecorator):
     """Дата-время, которое всегда хранится в UTC и всегда читается с часовым поясом.
 
-    SQLite не хранит часовой пояс и отдаёт «наивные» даты, из-за чего вычитание
-    `now - due_at` падало бы с TypeError. Этот тип возвращает дату в UTC в любой базе.
+    PostgreSQL отдаёт время в часовом поясе текущего соединения (оно зависит от настроек
+    сервера). Этот тип приводит прочитанное значение к UTC, чтобы расчёты (например,
+    штраф) не зависели от настроек базы. Дату без часового пояса сохранить нельзя.
     """
 
     impl = DateTime
@@ -31,9 +32,9 @@ class UTCDateTime(TypeDecorator):
         return value.astimezone(timezone.utc)
 
     def process_result_value(self, value, dialect):
-        if value is not None and value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
-        return value
+        if value is None:
+            return None
+        return value.astimezone(timezone.utc)
 
 
 class Book(Base):

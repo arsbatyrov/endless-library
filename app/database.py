@@ -1,16 +1,22 @@
 import os
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-# Строка подключения. Берётся из переменной окружения DATABASE_URL,
-# а если её нет, используется локальный файл SQLite. На этапе 2 здесь будет PostgreSQL.
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///library.db")
+# Читает файл .env. Переменные, уже заданные в окружении, имеют приоритет над файлом.
+load_dotenv()
 
-# check_same_thread нужен только для SQLite: FastAPI может обрабатывать запрос в другом потоке.
-# Остальные базы (PostgreSQL) такой настройки не знают и выдали бы ошибку.
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+# Адрес базы обязателен: запасного варианта нет, чтобы приложение не запустилось
+# молча не на той базе.
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL is not set. Copy .env.example to .env "
+        "(or set the environment variable) and start the database: docker compose up -d db"
+    )
+
+engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 

@@ -10,7 +10,9 @@ from app.models import UTCDateTime
 config = context.config
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # disable_existing_loggers=False: иначе при запуске миграций из тестов
+    # Alembic отключил бы логгеры pytest.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 # Модели, с которыми Alembic сравнивает базу при --autogenerate.
 target_metadata = Base.metadata
@@ -50,8 +52,6 @@ def run_migrations_online() -> None:
             target_metadata=target_metadata,
             render_item=render_item,
             compare_type=True,  # замечать смену типа колонки
-            # SQLite не умеет менять колонки на месте, там нужен «пакетный» режим
-            render_as_batch=connection.dialect.name == "sqlite",
         )
         with context.begin_transaction():
             context.run_migrations()
