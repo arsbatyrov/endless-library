@@ -47,6 +47,10 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    ignore:
+      # Node берём только LTS-версии (чётные major, сейчас 24): не-LTS приносит нестабильность.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
 
   # Образы в docker-compose.yml (postgres)
   - package-ecosystem: docker-compose
@@ -54,3 +58,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    ignore:
+      # Смена major-версии PostgreSQL несовместима с данными прежней версии в томе pgdata: её делают
+      # осознанно (дамп/восстановление или pg_upgrade), а не автоматическим PR.
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
