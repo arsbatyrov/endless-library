@@ -1,0 +1,25 @@
+# Локальный кластер Kubernetes в Docker (kind = Kubernetes IN Docker).
+# Один узел (он же control-plane), порты 80/443 внутри кластера проброшены на 8090/8453 вашего компьютера:
+# через них позже будем ходить в приложение через Ingress.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: library
+nodes:
+  - role: control-plane
+    # Версия закреплена: 1.37 не стартует на cgroup v1 (наш Docker Desktop); kind create cluster --config ... берёт образ отсюда
+    image: kindest/node:v1.34.0
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 8090
+        listenAddress: "127.0.0.1"
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 8453
+        listenAddress: "127.0.0.1"
+        protocol: TCP
