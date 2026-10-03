@@ -29,3 +29,63 @@ td {
   border: 1px solid #e0a4a4;
   background: #fdeeee;
 }
+
+.toolbar {
+  margin-bottom: 16px;
+}
+
+button {
+  font: inherit;
+  padding: 6px 12px;
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.notice {
+  padding: 10px 16px;
+  border: 1px solid #a8d5b5;
+  background: #eef9f1;
+}
+
+.form-error {
+  margin: 8px 0;
+}
+
+form {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #e3e6ea;
+}
+
+.field {
+  margin-bottom: 12px;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.field input {
+  width: 100%;
+  max-width: 420px;
+  padding: 6px 8px;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.field input[aria-invalid="true"] {
+  border-color: #c0392b;
+}
+
+.field-error {
+  margin: 4px 0 0;
+  color: #c0392b;
+  font-size: 14px;
+}
+
+.row-actions span {
+  margin-right: 8px;
+}
