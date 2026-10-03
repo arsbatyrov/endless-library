@@ -84,7 +84,9 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
 
+      # always(): результат второго скана виден, даже если первый нашёл уязвимость.
       - name: Scan frontend image
+        if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: library-web:scan
