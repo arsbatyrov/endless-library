@@ -32,8 +32,8 @@ def test_aware_datetime_in_other_timezone_is_stored_as_the_same_instant_in_utc(d
     db.expire_all()  # заставляем перечитать значения из базы, а не из памяти сессии
     saved = db.get(Loan, loan.id)
 
-    assert saved.due_at == local_time                  # тот же момент времени
-    assert saved.due_at.utcoffset() == timedelta(0)    # и снова с поясом UTC
+    assert saved.due_at == local_time  # тот же момент времени
+    assert saved.due_at.utcoffset() == timedelta(0)  # и снова с поясом UTC
     assert saved.due_at.hour == 12
 
 

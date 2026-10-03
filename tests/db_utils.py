@@ -14,7 +14,9 @@ ROOT = Path(__file__).resolve().parent.parent
 def _require_test_database(url: URL) -> None:
     """Защита: разрушительные операции допустимы только на базах, имя которых кончается на _test."""
     if not url.database or not url.database.endswith("_test"):
-        raise RuntimeError(f"Refusing to touch database {url.database!r}: name must end with '_test'")
+        raise RuntimeError(
+            f"Refusing to touch database {url.database!r}: name must end with '_test'"
+        )
 
 
 def ensure_database(url: URL) -> None:

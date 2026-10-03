@@ -1,18 +1,18 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from app.services.fines import calculate_fine
 
-DUE = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+DUE = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
 
 
 @pytest.mark.parametrize(
     "delay, expected_fine",
     [
-        (timedelta(days=-5), 0),    # вернули раньше срока
-        (timedelta(0), 0),          # ровно в срок
-        (timedelta(hours=23), 0),   # неполный день не штрафуется
+        (timedelta(days=-5), 0),  # вернули раньше срока
+        (timedelta(0), 0),  # ровно в срок
+        (timedelta(hours=23), 0),  # неполный день не штрафуется
         (timedelta(hours=24), 10),  # ровно один полный день
         (timedelta(hours=47), 10),  # один полный день и почти второй
         (timedelta(days=3), 30),

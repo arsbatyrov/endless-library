@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, TypeDecorator
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -7,7 +7,7 @@ from app.database import Base
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class UTCDateTime(TypeDecorator):
@@ -29,12 +29,12 @@ class UTCDateTime(TypeDecorator):
             return None
         if value.tzinfo is None:
             raise ValueError("Naive datetime is not allowed, use timezone-aware UTC")
-        return value.astimezone(timezone.utc)
+        return value.astimezone(UTC)
 
     def process_result_value(self, value, dialect):
         if value is None:
             return None
-        return value.astimezone(timezone.utc)
+        return value.astimezone(UTC)
 
 
 class Book(Base):

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -15,7 +15,7 @@ from app.services.loans import (
 from tests.factories import make_book, make_reader
 
 # «Сейчас» в тестах задаём сами: так не нужно ждать, чтобы получить просрочку.
-NOW = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
 
 
 # ---------- выдача ----------
