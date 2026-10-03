@@ -5,10 +5,10 @@
 ## Первый запуск
 
 ```powershell
-# 1. Окружение и зависимости
+# 1. Окружение и зависимости (для разработки: requirements-dev.txt, включает ruff)
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
 # 2. Настройки (затем поменяйте пароль в .env)
 copy .env.example .env
@@ -43,6 +43,15 @@ pytest tests/concurrency  # только тесты гонок
 | `tests/db` | ограничения самой базы (уникальность, внешние ключи, NOT NULL) в обход приложения |
 | `tests/migrations` | цепочка миграций: накат с нуля, откат, совпадение с моделями |
 | `tests/concurrency` | гонки: одновременные запросы к одним данным |
+
+## Проверка кода
+
+Те же проверки запускаются в CI (GitHub Actions); перед коммитом их можно выполнить локально:
+
+```powershell
+ruff check .            # поиск замечаний (ruff check --fix . исправит безопасные)
+ruff format .           # форматирование
+```
 
 ## Миграции
 
