@@ -37,23 +37,6 @@ jobs:
       - name: Check formatting
         run: ruff format --check .
 
-      # ВРЕМЕННО: если проверки выше упали, готовим патч с исправлениями, чтобы применить его локально.
-      - name: Produce fixes patch
-        if: failure()
-        run: |
-          ruff check --fix . || true
-          ruff format .
-          git diff > ruff-fixes.patch
-          ruff check . --output-format=concise || true
-
-      - name: Upload fixes patch
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ruff-fixes
-          path: ruff-fixes.patch
-          if-no-files-found: ignore
-
   tests:
     name: Tests (Python 3.12, PostgreSQL 16)
     runs-on: ubuntu-latest
