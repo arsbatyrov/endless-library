@@ -1,0 +1,96 @@
+name: Security
+
+# Проверки безопасности: известные уязвимости в зависимостях и в образах.
+# Запускаются на каждый pull request, на main и раз в неделю (новые уязвимости находят и в старом коде).
+# Эти проверки НЕ входят в обязательные для слияния: новая уязвимость в чужой библиотеке не должна
+# блокировать несвязанные изменения; красный результат это сигнал обновить зависимость.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 5 * * 1" # понедельник, 05:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-audit:
+    name: Dependency audit (Python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      # pip-audit сверяет закреплённые версии с базой известных уязвимостей (PyPI Advisory Database).
+      - name: Audit Python dependencies
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements-dev.txt
+
+  npm-audit:
+    name: Dependency audit (npm)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Падаем только на серьёзных (high и выше): средние уязвимости в инструментах сборки видны в отчёте.
+      - name: Audit npm dependencies
+        run: npm audit --audit-level=high
+
+  image-scan:
+    name: Image scan (Trivy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Build images
+        run: |
+          docker build -t library-api:scan .
+          docker build -t library-web:scan ./frontend
+
+      # Ищем уязвимости уровня HIGH и CRITICAL, для которых уже есть исправление (ignore-unfixed):
+      # на такие можно отреагировать обновлением, на остальные повлиять нельзя.
+      - name: Scan API image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: library-api:scan
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+
+      # always(): результат второго скана виден, даже если первый нашёл уязвимость.
+      - name: Scan frontend image
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: library-web:scan
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"

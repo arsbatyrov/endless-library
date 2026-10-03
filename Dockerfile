@@ -15,6 +15,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH"
 
+# Подтягиваем исправления безопасности для пакетов ОС: базовый образ может отставать от репозитория Debian
+# (сканер Trivy в CI находил так уязвимость в libpcre2). Кэш apt удаляем, чтобы образ не рос.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 # Работаем не от root: при взломе приложения у процесса меньше прав.
 RUN useradd --create-home --uid 10001 app
 WORKDIR /app
