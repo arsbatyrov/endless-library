@@ -22,12 +22,13 @@ def commit_or_409(db: Session) -> None:
     """Сохраняет изменения; если email уже занят, откатывает и возвращает 409."""
     try:
         db.commit()
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
+        # from exc: исходная ошибка базы сохраняется в логах как причина.
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Reader with this email already exists",
-        )
+        ) from exc
 
 
 @router.post("", response_model=ReaderRead, status_code=status.HTTP_201_CREATED)

@@ -1,6 +1,8 @@
 line-length = 100
 target-version = "py312"
 src = ["."]
+# Файлы миграций генерирует Alembic, их стиль не правим.
+extend-exclude = ["migrations/versions"]
 
 [lint]
 # E, F: ошибки и неиспользуемые имена; I: порядок импортов; UP: устаревший синтаксис;
@@ -8,3 +10,7 @@ src = ["."]
 select = ["E", "F", "I", "UP", "B"]
 # E501 (длинные строки) отключено: код форматирует ruff format, а длинные комментарии допустимы.
 ignore = ["E501"]
+
+[lint.flake8-bugbear]
+# Depends(...) в аргументах по умолчанию это штатный приём FastAPI, а не ошибка.
+extend-immutable-calls = ["fastapi.Depends"]
