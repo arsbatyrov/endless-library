@@ -1,4 +1,4 @@
-import type { Book, BookInput, Reader, ReaderInput } from "./types";
+import type { Book, BookInput, Loan, LoanReturn, Reader, ReaderInput } from "./types";
 
 /** Ошибка ответа API: хранит HTTP-код и (для ответа 422) ошибки по полям формы. */
 export class ApiError extends Error {
@@ -90,4 +90,17 @@ export function updateReader(id: number, input: ReaderInput): Promise<Reader> {
 
 export function deleteReader(id: number): Promise<void> {
   return request<void>(`/api/readers/${id}`, { method: "DELETE" });
+}
+
+/** Книги, которые сейчас на руках у читателя (ещё не возвращены). */
+export function getReaderLoans(readerId: number, signal?: AbortSignal): Promise<Loan[]> {
+  return request<Loan[]>(`/api/readers/${readerId}/loans`, { signal });
+}
+
+export function issueBook(bookId: number, readerId: number): Promise<Loan> {
+  return request<Loan>("/api/loans", jsonInit("POST", { book_id: bookId, reader_id: readerId }));
+}
+
+export function returnBook(loanId: number): Promise<LoanReturn> {
+  return request<LoanReturn>(`/api/loans/${loanId}/return`, { method: "POST" });
 }

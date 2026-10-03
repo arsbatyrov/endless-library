@@ -90,6 +90,16 @@ form {
   margin-right: 8px;
 }
 
+.overdue {
+  color: #c0392b;
+}
+
+select {
+  font: inherit;
+  padding: 6px 8px;
+  max-width: 100%;
+}
+
 .tabs {
   display: flex;
   gap: 4px;

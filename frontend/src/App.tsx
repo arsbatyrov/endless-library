@@ -1,17 +1,26 @@
-import { useState } from "react";
+import { type ComponentType, useState } from "react";
 
 import { BooksPage } from "./BooksPage";
+import { LoansPage } from "./LoansPage";
 import { ReadersPage } from "./ReadersPage";
 
-type Tab = "books" | "readers";
+type Tab = "books" | "readers" | "loans";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "books", label: "Книги" },
   { id: "readers", label: "Читатели" },
+  { id: "loans", label: "Выдачи" },
 ];
+
+const PAGES: Record<Tab, ComponentType> = {
+  books: BooksPage,
+  readers: ReadersPage,
+  loans: LoansPage,
+};
 
 export function App() {
   const [tab, setTab] = useState<Tab>("books");
+  const Page = PAGES[tab];
 
   return (
     <main>
@@ -36,7 +45,7 @@ export function App() {
       </div>
 
       <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
-        {tab === "books" ? <BooksPage /> : <ReadersPage />}
+        <Page />
       </div>
     </main>
   );
