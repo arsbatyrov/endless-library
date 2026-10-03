@@ -1,9 +1,8 @@
-﻿fastapi
-uvicorn
-sqlalchemy
-pytest
-pytest-cov
-httpx2
-alembic
-psycopg[binary]
-python-dotenv
+# Рабочие зависимости приложения (попадают в Docker-образ API).
+# Прямые зависимости закреплены, чтобы сборка образа была воспроизводимой.
+fastapi==0.142.2
+uvicorn==0.54.0
+sqlalchemy==2.1.2
+alembic==1.20.0
+psycopg[binary]==3.3.6
+python-dotenv==1.2.4

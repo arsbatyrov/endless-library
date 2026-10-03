@@ -1,0 +1,17 @@
+# Контекст сборки образа API: только то, что нужно приложению.
+.git
+.github
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+htmlcov
+test-results
+tests
+frontend
+docs
+.env
+.env.*
+*.db
+.claude

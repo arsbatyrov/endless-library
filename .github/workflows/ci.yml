@@ -184,3 +184,41 @@ jobs:
           path: test-results/
           if-no-files-found: ignore
           retention-days: 14
+
+  docker:
+    name: Docker images (build and smoke test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # docker-compose.yml берёт имя, пароль и базу из .env; для проверки хватает шаблона.
+      - name: Create .env from the template
+        run: cp .env.example .env
+
+      - name: Build images and start the stack
+        run: docker compose --profile full up -d --build
+
+      # Ждём, пока фронтенд (nginx) начнёт отвечать, и проверяем весь путь: браузер -> nginx -> API -> база.
+      - name: Smoke test through nginx
+        run: |
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8080/api/health && break
+            sleep 2
+          done
+          echo
+          curl -fsS http://127.0.0.1:8080/api/health | grep -q '"status":"ok"'
+          curl -fsS http://127.0.0.1:8080/ | grep -q 'id="root"'
+          test "$(curl -fsS http://127.0.0.1:8080/api/books)" = "[]"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/books/999)" = "404"
+          docker compose --profile full exec -T api id -u | grep -qx 10001
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose --profile full logs --no-color
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose --profile full down -v
