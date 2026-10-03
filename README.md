@@ -23,6 +23,18 @@ uvicorn app.main:app --reload
 
 Документация API (Swagger): http://127.0.0.1:8000/docs
 
+## Фронтенд
+
+React + Vite + TypeScript в папке `frontend/`. Запросы к API идут на `/api/...`,
+dev-сервер Vite пересылает их в FastAPI (порт 8000), поэтому CORS не нужен.
+
+```powershell
+cd frontend
+npm install
+npm run dev          # http://localhost:5173 (API должен работать на :8000)
+npm run build        # проверка типов и сборка
+```
+
 ## Тесты
 
 Нужна запущенная база (`docker compose up -d db`). Тесты используют отдельную базу
