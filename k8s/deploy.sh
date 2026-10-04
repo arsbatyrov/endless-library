@@ -81,5 +81,5 @@ fi
 
 echo
 echo "Готово. Интерфейс: http://127.0.0.1:8090   API: http://127.0.0.1:8090/api/health"
-echo "Мониторинг: kubectl --context $CONTEXT -n monitoring port-forward svc/grafana 3100:3000  ->  http://127.0.0.1:3100 (дашборд Library API)"
-echo "            kubectl --context $CONTEXT -n monitoring port-forward svc/prometheus 9090:9090  ->  http://127.0.0.1:9090"
+echo "Grafana (дашборд Library API): http://grafana.localhost:8090"
+echo "Prometheus: kubectl --context $CONTEXT -n monitoring port-forward svc/prometheus 9090:9090  ->  http://127.0.0.1:9090"

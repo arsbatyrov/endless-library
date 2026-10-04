@@ -108,3 +108,21 @@ def test_every_dashboard_query_is_valid_promql():
     assert len(expressions) >= 10
     for expr in expressions:
         assert prometheus_query(expr)["status"] == "success", expr
+
+
+def test_grafana_is_reachable_by_its_host_name_through_the_ingress():
+    """http://grafana.localhost:8090 открывает Grafana, а запросы к остальным именам по-прежнему идут в приложение.
+
+    Имя подставляем заголовком Host: резолвер Windows и Python не всегда знают имена *.localhost (браузеры знают).
+    """
+    import httpx2 as httpx
+
+    from tests.smoke.conftest import SMOKE_URL
+
+    with httpx.Client(base_url=SMOKE_URL, timeout=10) as client:
+        grafana = client.get("/api/health", headers={"Host": "grafana.localhost"})
+        library = client.get("/api/health")  # путь тот же, имя обычное: должно отвечать приложение
+
+    assert grafana.status_code == 200
+    assert grafana.json()["database"] == "ok"
+    assert library.json() == {"status": "ok"}
