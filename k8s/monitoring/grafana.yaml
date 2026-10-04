@@ -1,5 +1,5 @@
 # Grafana: графики по данным из Prometheus. Источник данных и дашборд «Library API» создаются автоматически.
-# Доступ: http://grafana.localhost:8090 (правило Ingress в grafana-ingress.yaml; port-forward не нужен)
+# Доступ: http://grafana.localhost:8080 (правило Ingress в grafana-ingress.yaml; port-forward не нужен)
 # Просмотр без входа (роль Viewer). Для правок: пользователь admin, пароль в Secret grafana-admin
 # (его создаёт deploy.sh случайным): kubectl -n monitoring get secret grafana-admin -o jsonpath="{.data.password}" | base64 -d
 apiVersion: apps/v1

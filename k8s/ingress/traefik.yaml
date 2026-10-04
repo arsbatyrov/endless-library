@@ -71,7 +71,7 @@ spec:
       labels: {app: traefik}
     spec:
       serviceAccountName: traefik
-      # В kind порты 80/443 узла проброшены на 8090/8453 компьютера (k8s/kind-config.yaml),
+      # В kind порты 80/443 узла проброшены на 8080/8453 компьютера (k8s/kind-config.yaml),
       # а метка ingress-ready=true стоит именно на этом узле.
       nodeSelector:
         ingress-ready: "true"

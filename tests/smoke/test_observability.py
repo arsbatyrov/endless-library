@@ -111,7 +111,7 @@ def test_every_dashboard_query_is_valid_promql():
 
 
 def test_grafana_is_reachable_by_its_host_name_through_the_ingress():
-    """http://grafana.localhost:8090 открывает Grafana, а запросы к остальным именам по-прежнему идут в приложение.
+    """http://grafana.localhost:8080 открывает Grafana, а запросы к остальным именам по-прежнему идут в приложение.
 
     Имя подставляем заголовком Host: резолвер Windows и Python не всегда знают имена *.localhost (браузеры знают).
     """
