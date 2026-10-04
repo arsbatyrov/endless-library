@@ -1,0 +1,73 @@
+# API: две копии (реплики). Если одна упадёт или обновляется, вторая продолжает отвечать.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: library
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: api}
+  # Плавное обновление: новый под должен стать готовым (readiness), только потом гасится старый.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels: {app: api}
+    spec:
+      containers:
+        - name: api
+          image: library-api:local
+          # Образ грузится в kind командой kind load, а не скачивается: из реестра не тянем.
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: library-db, key: DATABASE_URL}}
+          # startup: даём приложению время запуститься; пока не прошла, остальные пробы не работают.
+          startupProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 2
+            failureThreshold: 30
+          # liveness: «процесс жив?» Не проходит -> Kubernetes перезапускает контейнер.
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+          # readiness: «готов принимать запросы?» (есть связь с базой). Не проходит -> под убирается
+          # из Service, но НЕ перезапускается.
+          readinessProbe:
+            httpGet: {path: /ready, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 3
+          # Остановка пода: Kubernetes одновременно шлёт SIGTERM и убирает под из списка адресов, но Ingress и
+          # kube-proxy узнают об этом с задержкой. Пауза перед SIGTERM даёт время перестать слать запросы
+          # на уходящий под (иначе часть запросов во время обновления падает).
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities: {drop: ["ALL"]}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: library
+spec:
+  selector: {app: api}
+  ports:
+    - port: 8000
+      targetPort: http

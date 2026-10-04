@@ -1,0 +1,112 @@
+# Ingress-контроллер Traefik: «входная дверь» кластера. Принимает HTTP с порта 80 узла и по правилам
+# из ресурсов Ingress раздаёт запросы нужным Service.
+#
+# Почему Traefik, а не ingress-nginx: проект ingress-nginx закрыт (поддержка прекращена в 2026 году),
+# а Traefik развивается и работает со стандартным ресурсом Ingress.
+# Манифест написан вручную (без Helm), чтобы были видны все части: права, класс, Deployment.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: traefik
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: traefik
+  namespace: traefik
+---
+# Права контроллера: читать Ingress, Service и адреса подов (EndpointSlice), чтобы знать, куда слать запросы.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: traefik
+rules:
+  - apiGroups: [""]
+    resources: ["services", "secrets", "nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "ingressclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses/status"]
+    verbs: ["update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: traefik
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: traefik
+subjects:
+  - kind: ServiceAccount
+    name: traefik
+    namespace: traefik
+---
+# IngressClass: имя «класса» Ingress, за который отвечает этот контроллер.
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: traefik
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  controller: traefik.io/ingress-controller
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traefik
+  namespace: traefik
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: traefik}
+  template:
+    metadata:
+      labels: {app: traefik}
+    spec:
+      serviceAccountName: traefik
+      # В kind порты 80/443 узла проброшены на 8090/8453 компьютера (k8s/kind-config.yaml),
+      # а метка ingress-ready=true стоит именно на этом узле.
+      nodeSelector:
+        ingress-ready: "true"
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: traefik
+          image: traefik:v3.7.13
+          args:
+            - --providers.kubernetesingress=true
+            # Слушаем непривилегированный порт 8000 в контейнере; hostPort ниже выведет его на порт 80 узла.
+            - --entrypoints.web.address=:8000
+            - --entrypoints.traefik.address=:8080
+            - --ping=true
+            - --accesslog=true
+          ports:
+            - name: web
+              containerPort: 8000
+              hostPort: 80
+            - name: admin
+              containerPort: 8080
+          readinessProbe:
+            httpGet: {path: /ping, port: admin}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /ping, port: admin}
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}

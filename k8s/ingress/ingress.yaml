@@ -1,0 +1,19 @@
+# Правило входа: любой запрос на порт 80 отправляется в Service web.
+# Дальше nginx внутри web сам различает: / отдаёт интерфейс, /api/... проксирует в API (как в docker compose).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: library
+  namespace: library
+spec:
+  ingressClassName: traefik
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 80
