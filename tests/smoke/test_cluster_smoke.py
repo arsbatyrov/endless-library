@@ -106,3 +106,16 @@ def test_html_must_be_revalidated_but_hashed_assets_are_cached_for_long():
     for response in (page, asset):
         assert response.headers["X-Content-Type-Options"] == "nosniff"
         assert response.headers["X-Frame-Options"] == "DENY"
+
+
+def test_swagger_docs_work_behind_the_ingress(api):
+    """/api/docs должна просить схему по /api/openapi.json (а не /openapi.json, где лежит страница сайта)."""
+    docs = api.get("/docs")
+    schema = api.get("/openapi.json")
+
+    assert docs.status_code == 200
+    assert "url: '/api/openapi.json'" in docs.text
+    assert schema.status_code == 200
+    assert schema.headers["content-type"].startswith("application/json")
+    assert schema.json()["servers"] == [{"url": "/api"}]
+    assert "/books" in schema.json()["paths"]

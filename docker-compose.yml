@@ -58,6 +58,8 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
+      # снаружи API виден под /api (nginx отрезает префикс): нужно для страницы документации
+      API_ROOT_PATH: /api
     depends_on:
       db:
         condition: service_healthy
