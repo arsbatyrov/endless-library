@@ -115,6 +115,26 @@ docker compose up -d redis                     # Redis на 127.0.0.1:6379
 - Тесты кэша (маркер `redis`) работают на отдельной базе Redis №15 и очищают её; рабочую (№0) не трогают.
   Адрес можно сменить переменной `REDIS_TEST_URL`. Без Redis: `pytest -m "not redis"`.
 
+## Контрактные тесты (OpenAPI)
+
+Контракт API это его OpenAPI-схема (`/openapi.json`, `/docs`): по ней работают фронтенд и любые другие клиенты.
+Две проверки в `tests/contract` (маркер `contract`, по умолчанию не запускаются, в CI это задание
+«Contract tests (Schemathesis)»):
+
+```powershell
+pytest tests/contract -m contract --no-cov                       # обычный прогон, ~12 с, результат всегда одинаков
+SCHEMATHESIS_EXPLORE=600 pytest tests/contract/test_schemathesis.py -m contract --no-cov   # случайный перебор
+UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m contract --no-cov   # после осознанного изменения API
+```
+
+- **Schemathesis** читает схему и сам придумывает сотни запросов на каждую операцию (граничные числа, пустые и
+  огромные строки, неверные типы, битый JSON) и проверяет ответы: код описан в контракте, тело подходит под
+  модель, нет 500, плохие запросы отклоняются, хорошие принимаются. Он уже нашёл и помог исправить: `false` как
+  число, id больше int32 (500), символ NUL в тексте (500), неописанные коды 400/404/409/503, потерянные границы
+  полей в схеме. Каждая находка закреплена обычным тестом в `tests/api/test_contract_regressions_api.py`.
+- **Снимок схемы** (`tests/contract/openapi.json`): любое изменение контракта делает тест красным и показывает,
+  какие операции добавлены или удалены. Обновление снимка видно в diff pull request.
+
 ## Тесты
 
 Нужна запущенная база (`docker compose up -d db`). Тесты используют отдельную базу

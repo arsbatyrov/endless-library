@@ -7,3 +7,4 @@ httpx2==2.13.1
 ruff==0.16.10
 pytest-playwright==0.9.0
 playwright==1.63.0
+schemathesis==4.29.1

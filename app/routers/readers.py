@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Reader
-from app.schemas import LoanRead, ReaderCreate, ReaderRead
+from app.openapi_responses import BAD_REQUEST, CONFLICT, NOT_FOUND
+from app.schemas import LoanRead, PathId, ReaderCreate, ReaderRead
 from app.services.loans import ensure_reader_has_no_loans, get_active_loans
 
 router = APIRouter(prefix="/readers", tags=["readers"])
@@ -31,7 +32,12 @@ def commit_or_409(db: Session) -> None:
         ) from exc
 
 
-@router.post("", response_model=ReaderRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ReaderRead,
+    status_code=status.HTTP_201_CREATED,
+    responses={**BAD_REQUEST, **CONFLICT},
+)
 def create_reader(data: ReaderCreate, db: Session = Depends(get_db)):
     reader = Reader(**data.model_dump())
     db.add(reader)
@@ -45,20 +51,22 @@ def list_readers(db: Session = Depends(get_db)):
     return db.scalars(select(Reader).order_by(Reader.id)).all()
 
 
-@router.get("/{reader_id}", response_model=ReaderRead)
-def get_reader(reader_id: int, db: Session = Depends(get_db)):
+@router.get("/{reader_id}", response_model=ReaderRead, responses={**NOT_FOUND})
+def get_reader(reader_id: PathId, db: Session = Depends(get_db)):
     return get_reader_or_404(reader_id, db)
 
 
-@router.get("/{reader_id}/loans", response_model=list[LoanRead])
-def list_reader_active_loans(reader_id: int, db: Session = Depends(get_db)):
+@router.get("/{reader_id}/loans", response_model=list[LoanRead], responses={**NOT_FOUND})
+def list_reader_active_loans(reader_id: PathId, db: Session = Depends(get_db)):
     """Книги, которые сейчас на руках у читателя (ещё не возвращены)."""
     get_reader_or_404(reader_id, db)
     return get_active_loans(db, reader_id)
 
 
-@router.put("/{reader_id}", response_model=ReaderRead)
-def update_reader(reader_id: int, data: ReaderCreate, db: Session = Depends(get_db)):
+@router.put(
+    "/{reader_id}", response_model=ReaderRead, responses={**BAD_REQUEST, **NOT_FOUND, **CONFLICT}
+)
+def update_reader(reader_id: PathId, data: ReaderCreate, db: Session = Depends(get_db)):
     reader = get_reader_or_404(reader_id, db)
     for field, value in data.model_dump().items():
         setattr(reader, field, value)
@@ -67,8 +75,10 @@ def update_reader(reader_id: int, data: ReaderCreate, db: Session = Depends(get_
     return reader
 
 
-@router.delete("/{reader_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_reader(reader_id: int, db: Session = Depends(get_db)):
+@router.delete(
+    "/{reader_id}", status_code=status.HTTP_204_NO_CONTENT, responses={**NOT_FOUND, **CONFLICT}
+)
+def delete_reader(reader_id: PathId, db: Session = Depends(get_db)):
     reader = get_reader_or_404(reader_id, db)
     ensure_reader_has_no_loans(db, reader_id)
     db.delete(reader)

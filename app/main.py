@@ -5,7 +5,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.openapi_responses import NOT_READY
 from app.routers import books, loans, readers
+from app.schemas import StatusResponse
 from app.services.errors import BusinessRuleError, NotFoundError
 
 # Таблицы здесь не создаются: структурой базы управляют миграции (alembic upgrade head).
@@ -31,12 +33,12 @@ async def business_rule_handler(request: Request, exc: BusinessRuleError):
 #   Kubernetes перезапускал бы здоровые поды API.
 # /ready ("readiness") отвечает на «можно ли слать сюда запросы?»: проверяет связь с базой.
 #   Пока не готов, под выводится из балансировки, но не перезапускается.
-@app.get("/health")
+@app.get("/health", response_model=StatusResponse)
 def health():
     return {"status": "ok"}
 
 
-@app.get("/ready")
+@app.get("/ready", response_model=StatusResponse, responses={**NOT_READY})
 def ready(db: Session = Depends(get_db)):
     try:
         db.execute(text("SELECT 1"))
