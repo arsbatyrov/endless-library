@@ -16,8 +16,8 @@ import pytest
 
 from tests.db_utils import ROOT
 
-KUBE_CONTEXT = os.getenv("SMOKE_KUBE_CONTEXT", "kind-library")
-DASHBOARD = ROOT / "k8s" / "monitoring" / "grafana" / "dashboards" / "library.json"
+KUBE_CONTEXT = os.getenv("SMOKE_KUBE_CONTEXT", "kind-endless-library")
+DASHBOARD = ROOT / "k8s" / "monitoring" / "grafana" / "dashboards" / "endless-library.json"
 
 pytestmark = pytest.mark.skipif(shutil.which("kubectl") is None, reason="kubectl is not installed")
 
@@ -69,7 +69,7 @@ def test_prometheus_sees_user_traffic(api):
 
     def seen():
         result = prometheus_query(
-            'sum by (path, status) (library_http_requests_total{path=~"/books.*"})'
+            'sum by (path, status) (endless_library_http_requests_total{path=~"/books.*"})'
         )["data"]["result"]
         found = {(r["metric"]["path"], r["metric"]["status"]) for r in result}
         return {("/books", "200"), ("/books/{book_id}", "404")} <= found
@@ -83,7 +83,7 @@ def test_metric_labels_use_route_templates_so_cardinality_stays_low(api):
 
     paths = {
         r["metric"]["path"]
-        for r in prometheus_query("library_http_requests_total")["data"]["result"]
+        for r in prometheus_query("endless_library_http_requests_total")["data"]["result"]
     }
 
     assert "/books/424242" not in paths
@@ -97,7 +97,7 @@ def test_grafana_is_healthy_and_has_the_provisioned_dashboard():
     found = wait_for(lambda: _raw(f"{base}/api/search?query=Library"))
 
     assert health["database"] == "ok"
-    assert [d["uid"] for d in found] == ["library-api"]
+    assert [d["uid"] for d in found] == ["endless-library"]
 
 
 def test_every_dashboard_query_is_valid_promql():

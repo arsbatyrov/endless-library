@@ -1,4 +1,4 @@
-# Образ API. Сборка: docker build -t library-api .
+# Образ API. Сборка: docker build -t endless-library-api .
 
 # ---- этап 1: зависимости в отдельном виртуальном окружении ----
 FROM python:3.12-slim AS builder

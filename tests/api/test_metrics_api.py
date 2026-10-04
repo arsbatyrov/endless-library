@@ -23,7 +23,7 @@ def sample(name: str, **labels: str) -> float:
 
 
 def requests_total(method: str, path: str, status: str) -> float:
-    return sample("library_http_requests_total", method=method, path=path, status=status)
+    return sample("endless_library_http_requests_total", method=method, path=path, status=status)
 
 
 # ---------- эндпоинт ----------
@@ -36,7 +36,7 @@ def test_metrics_endpoint_serves_prometheus_text_format(client):
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/plain")
-    assert "# TYPE library_http_requests_total counter" in response.text
+    assert "# TYPE endless_library_http_requests_total counter" in response.text
 
 
 def test_metrics_endpoint_is_not_part_of_the_public_contract(client):
@@ -75,11 +75,15 @@ def test_unknown_address_is_counted_under_one_unmatched_label(client):
 
 
 def test_request_duration_is_recorded(client):
-    before = sample("library_http_request_duration_seconds_count", method="GET", path="/books")
+    before = sample(
+        "endless_library_http_request_duration_seconds_count", method="GET", path="/books"
+    )
 
     client.get("/books")
 
-    after = sample("library_http_request_duration_seconds_count", method="GET", path="/books")
+    after = sample(
+        "endless_library_http_request_duration_seconds_count", method="GET", path="/books"
+    )
     assert after == before + 1
 
 
@@ -117,14 +121,14 @@ def test_unhandled_error_is_counted_as_500(db):
 
 
 def test_cache_miss_then_hit_are_counted(client, redis_cache):
-    miss_before = sample("library_cache_requests_total", result="miss")
-    hit_before = sample("library_cache_requests_total", result="hit")
+    miss_before = sample("endless_library_cache_requests_total", result="miss")
+    hit_before = sample("endless_library_cache_requests_total", result="hit")
 
     client.get("/books")
     client.get("/books")
 
-    assert sample("library_cache_requests_total", result="miss") == miss_before + 1
-    assert sample("library_cache_requests_total", result="hit") == hit_before + 1
+    assert sample("endless_library_cache_requests_total", result="miss") == miss_before + 1
+    assert sample("endless_library_cache_requests_total", result="hit") == hit_before + 1
 
 
 def test_redis_failure_is_counted_as_cache_error(client, redis_cache, monkeypatch):
@@ -134,11 +138,11 @@ def test_redis_failure_is_counted_as_cache_error(client, redis_cache, monkeypatc
         raise RedisConnectionError("lost")
 
     monkeypatch.setattr(redis_cache.client, "get", broken)
-    before = sample("library_cache_requests_total", result="error")
+    before = sample("endless_library_cache_requests_total", result="error")
 
     client.get("/books")
 
-    assert sample("library_cache_requests_total", result="error") == before + 1
+    assert sample("endless_library_cache_requests_total", result="error") == before + 1
 
 
 # ---------- бизнес-метрики ----------
@@ -146,23 +150,23 @@ def test_redis_failure_is_counted_as_cache_error(client, redis_cache, monkeypatc
 
 def test_issue_and_return_are_counted(client):
     book, reader = create_book(client), create_reader(client)
-    issued_before = sample("library_loans_issued_total")
-    returned_before = sample("library_loans_returned_total")
+    issued_before = sample("endless_library_loans_issued_total")
+    returned_before = sample("endless_library_loans_returned_total")
 
     loan = issue_loan(client, book["id"], reader["id"]).json()
     client.post(f"/loans/{loan['id']}/return")
 
-    assert sample("library_loans_issued_total") == issued_before + 1
-    assert sample("library_loans_returned_total") == returned_before + 1
+    assert sample("endless_library_loans_issued_total") == issued_before + 1
+    assert sample("endless_library_loans_returned_total") == returned_before + 1
 
 
 def test_refused_issue_is_not_counted_as_issued(client):
     book, reader = create_book(client, copies_available=0), create_reader(client)
-    before = sample("library_loans_issued_total")
+    before = sample("endless_library_loans_issued_total")
 
     assert issue_loan(client, book["id"], reader["id"]).status_code == 409
 
-    assert sample("library_loans_issued_total") == before
+    assert sample("endless_library_loans_issued_total") == before
 
 
 def test_fine_amount_is_added_to_the_fines_counter(db):
@@ -171,12 +175,12 @@ def test_fine_amount_is_added_to_the_fines_counter(db):
     book, reader = make_book(db), make_reader(db)
     now = datetime(2026, 1, 1, tzinfo=UTC)
     loan = issue_book(db, book.id, reader.id, now)
-    before = sample("library_fines_charged_total")
+    before = sample("endless_library_fines_charged_total")
 
     _, fine = return_book(db, loan.id, loan.due_at + timedelta(days=3))
 
     assert fine == 30
-    assert sample("library_fines_charged_total") == before + 30
+    assert sample("endless_library_fines_charged_total") == before + 30
 
 
 # ---------- идентификатор запроса ----------
@@ -219,10 +223,10 @@ def test_request_id_is_present_on_error_responses_too(client):
 
 
 def test_each_request_writes_one_access_log_record(client, caplog):
-    with caplog.at_level(logging.INFO, logger="library.access"):
+    with caplog.at_level(logging.INFO, logger="endless_library.access"):
         client.get("/books/777", headers={"X-Request-ID": "log-1"})
 
-    records = [r for r in caplog.records if r.name == "library.access"]
+    records = [r for r in caplog.records if r.name == "endless_library.access"]
     assert len(records) == 1
     record = records[0]
     assert (record.request_id, record.method, record.path) == ("log-1", "GET", "/books/777")
@@ -232,8 +236,8 @@ def test_each_request_writes_one_access_log_record(client, caplog):
 
 
 def test_service_endpoints_do_not_write_access_log_records(client, caplog):
-    with caplog.at_level(logging.INFO, logger="library.access"):
+    with caplog.at_level(logging.INFO, logger="endless_library.access"):
         client.get("/health")
         client.get("/metrics")
 
-    assert [r for r in caplog.records if r.name == "library.access"] == []
+    assert [r for r in caplog.records if r.name == "endless_library.access"] == []

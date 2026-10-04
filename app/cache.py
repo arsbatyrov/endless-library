@@ -21,7 +21,7 @@ from app.metrics import CACHE_REQUESTS
 
 load_dotenv()
 
-logger = logging.getLogger("library.cache")
+logger = logging.getLogger("endless_library.cache")
 
 DEFAULT_TTL_SECONDS = 60
 # Счётчик популярности живёт дольше, но не вечно: если Redis пропустил увеличение (был недоступен),

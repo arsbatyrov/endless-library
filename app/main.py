@@ -18,14 +18,14 @@ from app.schemas import StatusResponse
 from app.services.errors import BusinessRuleError, NotFoundError
 
 setup_logging()
-access_logger = logging.getLogger("library.access")
+access_logger = logging.getLogger("endless_library.access")
 
 # Таблицы здесь не создаются: структурой базы управляют миграции (alembic upgrade head).
 # API_ROOT_PATH: под каким префиксом приложение видно СНАРУЖИ. За nginx это /api: он отрезает префикс и
 # передаёт нам /docs, но страница документации должна просить схему по внешнему адресу /api/openapi.json,
 # иначе её запрос попадёт не в API (а в страницу сайта) и Swagger покажет «Unable to render this definition».
 # Напрямую (порт 8000, без nginx) переменная не задаётся: префикса нет.
-app = FastAPI(title="Library API", root_path=os.getenv("API_ROOT_PATH", ""))
+app = FastAPI(title="Endless Library API", root_path=os.getenv("API_ROOT_PATH", ""))
 app.include_router(books.router)
 app.include_router(readers.router)
 app.include_router(loans.router)

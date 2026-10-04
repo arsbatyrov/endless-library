@@ -39,9 +39,9 @@ def add_reader(app, name: str, email: str) -> None:
 def test_russian_browser_gets_the_russian_interface_by_default(app):
     app.open()
 
-    expect(app.heading).to_have_text("Библиотека")
+    expect(app.heading).to_have_text("Endless Library")
     expect(app.page.locator("html")).to_have_attribute("lang", "ru")
-    expect(app.page).to_have_title("Библиотека")
+    expect(app.page).to_have_title("Endless Library")
     expect(app.locale_button("ru")).to_have_attribute("aria-pressed", "true")
     expect(app.locale_button("en")).to_have_attribute("aria-pressed", "false")
 
@@ -52,7 +52,7 @@ def test_english_browser_gets_the_english_interface_by_default(browser, base_url
         page = context.new_page()
         page.goto("/")
 
-        expect(page.get_by_role("heading", level=1)).to_have_text("Library")
+        expect(page.get_by_role("heading", level=1)).to_have_text("Endless Library")
         expect(page.locator("html")).to_have_attribute("lang", "en")
     finally:
         context.close()
@@ -63,9 +63,9 @@ def test_switching_to_english_translates_the_page_frame(app):
 
     app.set_locale("en")
 
-    expect(app.heading).to_have_text("Library")
+    expect(app.heading).to_have_text("Endless Library")
     expect(app.page.locator("html")).to_have_attribute("lang", "en")
-    expect(app.page).to_have_title("Library")
+    expect(app.page).to_have_title("Endless Library")
     expect(app.tab("books")).to_have_text("Books")
     expect(app.tab("readers")).to_have_text("Readers")
     expect(app.tab("loans")).to_have_text("Loans")
@@ -79,7 +79,7 @@ def test_switching_back_to_russian_restores_russian_texts(app):
 
     app.set_locale("ru")
 
-    expect(app.heading).to_have_text("Библиотека")
+    expect(app.heading).to_have_text("Endless Library")
     expect(app.tab("books")).to_have_text("Книги")
     expect(app.page.get_by_role("tablist")).to_have_accessible_name("Разделы")
 
@@ -90,7 +90,7 @@ def test_choice_is_remembered_after_reload(app):
 
     app.page.reload()
 
-    expect(app.heading).to_have_text("Library")
+    expect(app.heading).to_have_text("Endless Library")
     expect(app.locale_button("en")).to_have_attribute("aria-pressed", "true")
 
 
@@ -229,7 +229,7 @@ def test_notices_in_english(app):
 def test_load_failure_message_in_english(app):
     app.page.route("**/api/books", lambda route: route.abort())
     # язык выставляем до первой загрузки страницы
-    app.page.add_init_script("window.localStorage.setItem('library.locale', 'en')")
+    app.page.add_init_script("window.localStorage.setItem('endless-library.locale', 'en')")
 
     app.open()
 
@@ -240,7 +240,7 @@ def test_load_failure_message_in_english(app):
 def test_loading_text_in_english(app):
     from tests.ui.network import HeldRequests
 
-    app.page.add_init_script("window.localStorage.setItem('library.locale', 'en')")
+    app.page.add_init_script("window.localStorage.setItem('endless-library.locale', 'en')")
     held = HeldRequests(app.page, "**/api/books")
 
     app.open()

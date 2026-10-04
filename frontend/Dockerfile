@@ -1,4 +1,4 @@
-# Образ фронтенда. Сборка (из папки frontend): docker build -t library-web .
+# Образ фронтенда. Сборка (из папки frontend): docker build -t endless-library-web .
 
 # ---- этап 1: сборка статических файлов ----
 FROM node:24-alpine AS build

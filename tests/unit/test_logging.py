@@ -9,8 +9,10 @@ from app.logging_config import JsonFormatter, new_request_id, request_id_var
 
 
 def make_record(message="hello", level=logging.INFO, **extra) -> logging.LogRecord:
-    logger = logging.getLogger("library.test")
-    return logger.makeRecord("library.test", level, __file__, 1, message, (), None, extra=extra)
+    logger = logging.getLogger("endless_library.test")
+    return logger.makeRecord(
+        "endless_library.test", level, __file__, 1, message, (), None, extra=extra
+    )
 
 
 def parse(record: logging.LogRecord) -> dict:
@@ -24,7 +26,7 @@ def test_record_is_one_line_of_valid_json_with_standard_fields():
     payload = json.loads(line)
     assert payload["msg"] == "hello"
     assert payload["level"] == "INFO"
-    assert payload["logger"] == "library.test"
+    assert payload["logger"] == "endless_library.test"
     assert payload["ts"].endswith("+00:00")
 
 
@@ -64,14 +66,14 @@ def test_newline_in_a_message_cannot_break_the_one_record_per_line_rule():
 
 
 def test_exception_is_included():
-    logger = logging.getLogger("library.test")
+    logger = logging.getLogger("endless_library.test")
     try:
         raise ValueError("boom")
     except ValueError:
         import sys
 
         record = logger.makeRecord(
-            "library.test", logging.ERROR, __file__, 1, "failed", (), sys.exc_info()
+            "endless_library.test", logging.ERROR, __file__, 1, "failed", (), sys.exc_info()
         )
 
     assert "ValueError: boom" in parse(record)["exc"]

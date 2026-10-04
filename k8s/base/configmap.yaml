@@ -1,10 +1,10 @@
 # ConfigMap: несекретные настройки отдельно от образов. Меняем значение, не пересобирая образ.
-# Пароли здесь НЕ хранятся: они в Secret library-db (его создаёт deploy.sh, в git его нет).
+# Пароли здесь НЕ хранятся: они в Secret endless-library-db (его создаёт deploy.sh, в git его нет).
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: library-config
-  namespace: library
+  name: endless-library-config
+  namespace: endless-library
 data:
   POSTGRES_USER: library
   POSTGRES_DB: library

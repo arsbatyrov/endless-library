@@ -1,4 +1,4 @@
-name: library
+name: endless-library
 
 services:
   db:
@@ -42,7 +42,7 @@ services:
   migrate:
     profiles: ["full"]
     build: .
-    image: library-api:local
+    image: endless-library-api:local
     command: ["alembic", "upgrade", "head"]
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
@@ -54,7 +54,7 @@ services:
   api:
     profiles: ["full"]
     build: .
-    image: library-api:local
+    image: endless-library-api:local
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
@@ -73,7 +73,7 @@ services:
   web:
     profiles: ["full"]
     build: ./frontend
-    image: library-web:local
+    image: endless-library-web:local
     environment:
       API_UPSTREAM: http://api:8000
     depends_on:
@@ -86,3 +86,6 @@ services:
 
 volumes:
   pgdata:
+    # Имя тома закреплено: проект Compose переименован, а в этом томе лежат рабочая база и тестовые базы.
+    # Без закрепления Compose создал бы новый пустой том endless-library_pgdata.
+    name: library_pgdata

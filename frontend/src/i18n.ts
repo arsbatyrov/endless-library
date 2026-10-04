@@ -12,7 +12,7 @@ export type Locale = "ru" | "en";
 export const LOCALES: readonly Locale[] = ["ru", "en"];
 
 const ru = {
-  "app.title": "Библиотека",
+  "app.title": "Endless Library",
   "app.sections": "Разделы",
   "locale.label": "Язык",
   "locale.ru": "Русский",
@@ -109,7 +109,7 @@ const ru = {
 export type Key = keyof typeof ru;
 
 const en: Record<Key, string> = {
-  "app.title": "Library",
+  "app.title": "Endless Library",
   "app.sections": "Sections",
   "locale.label": "Language",
   "locale.ru": "Русский",
@@ -204,7 +204,7 @@ const en: Record<Key, string> = {
 };
 
 const DICTIONARIES: Record<Locale, Record<Key, string>> = { ru, en };
-const STORAGE_KEY = "library.locale";
+const STORAGE_KEY = "endless-library.locale";
 
 export type Params = Record<string, string | number>;
 

@@ -7,7 +7,7 @@ from playwright.sync_api import expect
 def test_app_opens_with_books_tab_selected(app):
     app.open()
 
-    expect(app.page.get_by_role("heading", name="Библиотека", level=1)).to_be_visible()
+    expect(app.page.get_by_role("heading", name="Endless Library", level=1)).to_be_visible()
     expect(app.tab("books")).to_have_attribute("aria-selected", "true")
     expect(app.books.empty).to_be_visible()
 

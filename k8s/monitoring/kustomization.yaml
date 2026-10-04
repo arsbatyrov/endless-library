@@ -24,4 +24,4 @@ configMapGenerator:
   - name: grafana-dashboards
     namespace: monitoring
     files:
-      - grafana/dashboards/library.json
+      - grafana/dashboards/endless-library.json

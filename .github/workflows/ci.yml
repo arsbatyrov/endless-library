@@ -286,11 +286,11 @@ jobs:
       - name: Show cluster state on failure
         if: failure()
         run: |
-          kubectl --context kind-library get pods -A -o wide
-          kubectl --context kind-library -n library describe pods
-          kubectl --context kind-library -n library logs --all-containers --prefix --tail=100 -l app=api
-          kubectl --context kind-library -n library logs --all-containers --prefix --tail=100 -l app=db
-          kubectl --context kind-library -n traefik logs --tail=100 deployment/traefik
+          kubectl --context kind-endless-library get pods -A -o wide
+          kubectl --context kind-endless-library -n endless-library describe pods
+          kubectl --context kind-endless-library -n endless-library logs --all-containers --prefix --tail=100 -l app=api
+          kubectl --context kind-endless-library -n endless-library logs --all-containers --prefix --tail=100 -l app=db
+          kubectl --context kind-endless-library -n traefik logs --tail=100 deployment/traefik
 
       - name: Upload test results
         if: failure()

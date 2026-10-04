@@ -6,7 +6,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   generateName: migrate-
-  namespace: library
+  namespace: endless-library
 spec:
   # База может ещё запускаться: Job сам повторяет попытки (до 8 раз с нарастающей паузой).
   backoffLimit: 8
@@ -16,12 +16,12 @@ spec:
       restartPolicy: Never
       containers:
         - name: migrate
-          image: library-api:local
+          image: endless-library-api:local
           imagePullPolicy: IfNotPresent
           command: ["alembic", "upgrade", "head"]
           env:
             - name: DATABASE_URL
-              valueFrom: {secretKeyRef: {name: library-db, key: DATABASE_URL}}
+              valueFrom: {secretKeyRef: {name: endless-library-db, key: DATABASE_URL}}
           resources:
             requests: {cpu: 50m, memory: 128Mi}
             limits: {memory: 256Mi}

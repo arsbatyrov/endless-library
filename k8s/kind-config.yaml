@@ -3,7 +3,7 @@
 # через них позже будем ходить в приложение через Ingress.
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
-name: library
+name: endless-library
 nodes:
   - role: control-plane
     # Версия закреплена: 1.37 не стартует на cgroup v1 (наш Docker Desktop); kind create cluster --config ... берёт образ отсюда

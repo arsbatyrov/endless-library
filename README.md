@@ -88,11 +88,11 @@ docker pull ghcr.io/arsbatyrov/endless-library-api:latest
 Нужны Docker, `kind`, `kubectl`; скрипт запускается в Git Bash (на Windows) или в обычной оболочке Linux/macOS.
 
 ```bash
-kind create cluster --config k8s/kind-config.yaml   # один раз: кластер library
+kind create cluster --config k8s/kind-config.yaml   # один раз: кластер endless-library
 bash k8s/deploy.sh                                   # сборка образов, загрузка в кластер, развёртывание
 # Интерфейс: http://127.0.0.1:8080   API: http://127.0.0.1:8080/api/health
 pytest tests/smoke -m smoke --no-cov                 # дымовые тесты и проверки устойчивости
-kind delete cluster --name library                   # убрать всё
+kind delete cluster --name endless-library                   # убрать всё
 ```
 
 | Файл | Что это |
@@ -135,9 +135,9 @@ docker compose up -d redis                     # Redis на 127.0.0.1:6379
 - **Prometheus и Grafana** разворачиваются в кластере (`k8s/monitoring`, namespace `monitoring`) скриптом `k8s/deploy.sh`:
 
 ```bash
-# Grafana: http://grafana.localhost:8080 (дашборд «Library API», port-forward не нужен)
-kubectl --context kind-library -n monitoring port-forward svc/prometheus 9090:9090   # http://127.0.0.1:9090
-kubectl --context kind-library -n library logs deploy/api --tail=20                  # JSON-логи
+# Grafana: http://grafana.localhost:8080 (дашборд «Endless Library», port-forward не нужен)
+kubectl --context kind-endless-library -n monitoring port-forward svc/prometheus 9090:9090   # http://127.0.0.1:9090
+kubectl --context kind-endless-library -n endless-library logs deploy/api --tail=20                  # JSON-логи
 ```
 
 Grafana открывается без входа (только просмотр); для правок: пользователь `admin`, пароль в Secret `grafana-admin`.
