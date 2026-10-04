@@ -2,7 +2,7 @@
 
 Это уже не «работает ли», а «что будет, когда под перезапустится или обновится».
 Тесты управляют кластером командой kubectl, поэтому нужны kubectl и доступ к кластеру;
-без них тесты пропускаются. Контекст: SMOKE_KUBE_CONTEXT (по умолчанию kind-library), namespace library.
+без них тесты пропускаются. Контекст: SMOKE_KUBE_CONTEXT (по умолчанию kind-endless-library), namespace endless-library.
 """
 
 import os
@@ -15,8 +15,8 @@ import pytest
 
 from tests.smoke.conftest import SMOKE_URL
 
-KUBE_CONTEXT = os.getenv("SMOKE_KUBE_CONTEXT", "kind-library")
-NAMESPACE = os.getenv("SMOKE_KUBE_NAMESPACE", "library")
+KUBE_CONTEXT = os.getenv("SMOKE_KUBE_CONTEXT", "kind-endless-library")
+NAMESPACE = os.getenv("SMOKE_KUBE_NAMESPACE", "endless-library")
 
 pytestmark = pytest.mark.skipif(shutil.which("kubectl") is None, reason="kubectl is not installed")
 

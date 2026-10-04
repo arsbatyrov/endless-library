@@ -4,7 +4,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: db
-  namespace: library
+  namespace: endless-library
 spec:
   serviceName: db
   replicas: 1
@@ -22,11 +22,11 @@ spec:
               name: postgres
           env:
             - name: POSTGRES_USER
-              valueFrom: {configMapKeyRef: {name: library-config, key: POSTGRES_USER}}
+              valueFrom: {configMapKeyRef: {name: endless-library-config, key: POSTGRES_USER}}
             - name: POSTGRES_DB
-              valueFrom: {configMapKeyRef: {name: library-config, key: POSTGRES_DB}}
+              valueFrom: {configMapKeyRef: {name: endless-library-config, key: POSTGRES_DB}}
             - name: POSTGRES_PASSWORD
-              valueFrom: {secretKeyRef: {name: library-db, key: POSTGRES_PASSWORD}}
+              valueFrom: {secretKeyRef: {name: endless-library-db, key: POSTGRES_PASSWORD}}
             # Данные в подпапке тома: в корне тома может лежать служебное содержимое, а Postgres требует пустую папку.
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
@@ -66,7 +66,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: db
-  namespace: library
+  namespace: endless-library
 spec:
   selector: {app: db}
   ports:

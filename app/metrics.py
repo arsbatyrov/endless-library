@@ -13,24 +13,26 @@ Prometheus раз в несколько секунд читает адрес /me
 from prometheus_client import Counter, Histogram
 
 HTTP_REQUESTS = Counter(
-    "library_http_requests_total",
+    "endless_library_http_requests_total",
     "HTTP requests handled by the API",
     ["method", "path", "status"],
 )
 HTTP_DURATION = Histogram(
-    "library_http_request_duration_seconds",
+    "endless_library_http_request_duration_seconds",
     "HTTP request duration in seconds",
     ["method", "path"],
     buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5),
 )
 CACHE_REQUESTS = Counter(
-    "library_cache_requests_total",
+    "endless_library_cache_requests_total",
     "Redis cache lookups by result: hit, miss or error (Redis unavailable)",
     ["result"],
 )
-LOANS_ISSUED = Counter("library_loans_issued_total", "Books issued to readers")
-LOANS_RETURNED = Counter("library_loans_returned_total", "Books returned by readers")
-FINES_CHARGED = Counter("library_fines_charged_total", "Total amount of fines charged on returns")
+LOANS_ISSUED = Counter("endless_library_loans_issued_total", "Books issued to readers")
+LOANS_RETURNED = Counter("endless_library_loans_returned_total", "Books returned by readers")
+FINES_CHARGED = Counter(
+    "endless_library_fines_charged_total", "Total amount of fines charged on returns"
+)
 
 # Служебные адреса не считаем: проверки Kubernetes и сам сбор метрик шли бы каждые несколько секунд
 # и заглушили бы реальный трафик пользователей.

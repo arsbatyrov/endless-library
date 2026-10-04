@@ -27,7 +27,7 @@ def test_api_error_reaches_client_from_the_api_not_from_a_proxy(api):
 def test_ui_opens_with_all_sections(app):
     app.open()
 
-    expect(app.page.get_by_role("heading", name="Библиотека", level=1)).to_be_visible()
+    expect(app.page.get_by_role("heading", name="Endless Library", level=1)).to_be_visible()
     for section in ("books", "readers", "loans"):
         expect(app.tab(section)).to_be_visible()
     expect(app.tab("books")).to_have_attribute("aria-selected", "true")

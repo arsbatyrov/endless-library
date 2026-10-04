@@ -51,12 +51,12 @@ class JsonFormatter(logging.Formatter):
 
 
 def setup_logging() -> None:
-    """Все логи приложения (логгеры library.*) идут в stdout JSON-строками: так их забирает Kubernetes."""
-    logger = logging.getLogger("library")
-    if any(getattr(h, "_library_json", False) for h in logger.handlers):
+    """Все логи приложения (логгеры endless_library.*) идут в stdout JSON-строками: так их забирает Kubernetes."""
+    logger = logging.getLogger("endless_library")
+    if any(getattr(h, "_endless_library_json", False) for h in logger.handlers):
         return  # уже настроено (повторный импорт, тесты)
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JsonFormatter())
-    handler._library_json = True  # type: ignore[attr-defined]
+    handler._endless_library_json = True  # type: ignore[attr-defined]
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)

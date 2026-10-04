@@ -4,7 +4,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis
-  namespace: library
+  namespace: endless-library
 spec:
   replicas: 1
   selector:
@@ -44,7 +44,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: redis
-  namespace: library
+  namespace: endless-library
 spec:
   selector: {app: redis}
   ports:

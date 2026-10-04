@@ -6,12 +6,12 @@ metadata:
   name: prometheus
   namespace: monitoring
 ---
-# Права только на чтение подов и только в namespace library (Role, а не ClusterRole): Prometheus не видит остальное.
+# Права только на чтение подов и только в namespace endless-library (Role, а не ClusterRole): Prometheus не видит остальное.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: prometheus-read-pods
-  namespace: library
+  namespace: endless-library
 rules:
   - apiGroups: [""]
     resources: ["pods"]
@@ -21,7 +21,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: prometheus-read-pods
-  namespace: library
+  namespace: endless-library
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role

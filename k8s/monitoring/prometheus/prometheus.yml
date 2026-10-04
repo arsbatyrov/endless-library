@@ -12,12 +12,12 @@ scrape_configs:
       - targets: ["localhost:9090"]
 
   # Поды API. Адреса подов не прописаны вручную: Prometheus спрашивает у Kubernetes, какие поды сейчас
-  # есть в namespace library (kubernetes_sd), поэтому новые поды после обновления находятся сами.
+  # есть в namespace endless-library (kubernetes_sd), поэтому новые поды после обновления находятся сами.
   - job_name: api
     kubernetes_sd_configs:
       - role: pod
         namespaces:
-          names: [library]
+          names: [endless-library]
     relabel_configs:
       # берём только поды API и только порт http
       - source_labels: [__meta_kubernetes_pod_label_app]

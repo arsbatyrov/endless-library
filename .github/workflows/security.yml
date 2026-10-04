@@ -70,15 +70,15 @@ jobs:
 
       - name: Build images
         run: |
-          docker build -t library-api:scan .
-          docker build -t library-web:scan ./frontend
+          docker build -t endless-library-api:scan .
+          docker build -t endless-library-web:scan ./frontend
 
       # Ищем уязвимости уровня HIGH и CRITICAL, для которых уже есть исправление (ignore-unfixed):
       # на такие можно отреагировать обновлением, на остальные повлиять нельзя.
       - name: Scan API image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: library-api:scan
+          image-ref: endless-library-api:scan
           format: table
           severity: CRITICAL,HIGH
           ignore-unfixed: true
@@ -89,7 +89,7 @@ jobs:
         if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: library-web:scan
+          image-ref: endless-library-web:scan
           format: table
           severity: CRITICAL,HIGH
           ignore-unfixed: true
