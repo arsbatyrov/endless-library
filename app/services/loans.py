@@ -4,6 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.cache import cache
+from app.metrics import FINES_CHARGED, LOANS_ISSUED, LOANS_RETURNED
 from app.models import Book, Loan, Reader
 from app.services.errors import BusinessRuleError, NotFoundError
 from app.services.fines import calculate_fine
@@ -61,6 +62,7 @@ def issue_book(db: Session, book_id: int, reader_id: int, now: datetime) -> Loan
     # Кэш трогаем только после commit: пока транзакция не зафиксирована, данные ещё могут откатиться.
     cache.invalidate_book(book_id)
     cache.record_loan(book_id)
+    LOANS_ISSUED.inc()
     return loan
 
 
@@ -81,6 +83,8 @@ def return_book(db: Session, loan_id: int, now: datetime) -> tuple[Loan, int]:
     db.commit()
     db.refresh(loan)
     cache.invalidate_book(loan.book_id)
+    LOANS_RETURNED.inc()
+    FINES_CHARGED.inc(fine)
     return loan, fine
 
 

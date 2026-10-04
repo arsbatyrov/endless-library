@@ -1,0 +1,26 @@
+# Мониторинг: Prometheus + Grafana. Применение: kubectl apply -k k8s/monitoring (его делает deploy.sh).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - prometheus.yaml
+  - grafana.yaml
+# ConfigMap собираются из обычных файлов: их удобно читать и править как файлы, а kustomize добавляет к имени
+# хеш содержимого, поэтому изменение настроек само перезапускает нужный под.
+configMapGenerator:
+  - name: prometheus-config
+    namespace: monitoring
+    files:
+      - prometheus/prometheus.yml
+  - name: grafana-datasources
+    namespace: monitoring
+    files:
+      - grafana/datasource.yaml
+  - name: grafana-dashboard-provider
+    namespace: monitoring
+    files:
+      - grafana/dashboard-provider.yaml
+  - name: grafana-dashboards
+    namespace: monitoring
+    files:
+      - grafana/dashboards/library.json

@@ -115,6 +115,25 @@ docker compose up -d redis                     # Redis на 127.0.0.1:6379
 - Тесты кэша (маркер `redis`) работают на отдельной базе Redis №15 и очищают её; рабочую (№0) не трогают.
   Адрес можно сменить переменной `REDIS_TEST_URL`. Без Redis: `pytest -m "not redis"`.
 
+## Наблюдаемость: метрики, логи, Grafana
+
+- **Метрики** (`GET /metrics` у каждого пода API, формат Prometheus; наружу nginx его не отдаёт): запросы по методу,
+  шаблону маршрута и коду ответа, время ответа (гистограмма), попадания и промахи кэша, число выдач, возвратов и
+  сумма штрафов. Служебные адреса `/health`, `/ready`, `/metrics` не считаются.
+- **Логи**: каждая запись одна строка JSON в stdout; на каждый запрос одна запись с `request_id`, `method`, `route`,
+  `status`, `duration_ms`. Заголовок `X-Request-ID` принимается от клиента (только безопасные символы) или создаётся
+  и возвращается в ответе: по нему находят все записи одного запроса.
+- **Prometheus и Grafana** разворачиваются в кластере (`k8s/monitoring`, namespace `monitoring`) скриптом `k8s/deploy.sh`:
+
+```bash
+kubectl --context kind-library -n monitoring port-forward svc/grafana 3100:3000      # http://127.0.0.1:3100, дашборд «Library API»
+kubectl --context kind-library -n monitoring port-forward svc/prometheus 9090:9090   # http://127.0.0.1:9090
+kubectl --context kind-library -n library logs deploy/api --tail=20                  # JSON-логи
+```
+
+Grafana открывается без входа (только просмотр); для правок: пользователь `admin`, пароль в Secret `grafana-admin`.
+История метрик хранится в памяти пода (при его пересоздании пропадает): это учебный стенд.
+
 ## Контрактные тесты (OpenAPI)
 
 Контракт API это его OpenAPI-схема (`/openapi.json`, `/docs`): по ней работают фронтенд и любые другие клиенты.

@@ -1,20 +1,63 @@
-from fastapi import Depends, FastAPI, Request
+import logging
+import time
+
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.responses import JSONResponse
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.logging_config import new_request_id, request_id_var, setup_logging
+from app.metrics import HTTP_DURATION, HTTP_REQUESTS, UNMEASURED_PATHS
 from app.openapi_responses import NOT_READY
 from app.routers import books, loans, readers
 from app.schemas import StatusResponse
 from app.services.errors import BusinessRuleError, NotFoundError
+
+setup_logging()
+access_logger = logging.getLogger("library.access")
 
 # Таблицы здесь не создаются: структурой базы управляют миграции (alembic upgrade head).
 app = FastAPI(title="Library API")
 app.include_router(books.router)
 app.include_router(readers.router)
 app.include_router(loans.router)
+
+
+@app.middleware("http")
+async def observe_requests(request: Request, call_next):
+    """Для каждого запроса: идентификатор (X-Request-ID), метрики Prometheus и одна строка JSON-лога."""
+    request_id = new_request_id(request.headers.get("X-Request-ID"))
+    token = request_id_var.set(request_id)
+    started = time.perf_counter()
+    status_code = 500  # если обработчик упадёт с исключением, запрос всё равно будет учтён как 500
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+        response.headers["X-Request-ID"] = request_id
+        return response
+    finally:
+        if request.url.path not in UNMEASURED_PATHS:
+            duration = time.perf_counter() - started
+            # Шаблон маршрута (/books/{book_id}), а не настоящий адрес: иначе у метрики было бы бесконечно много значений.
+            route = request.scope.get("route")
+            route_path = route.path if route is not None else "unmatched"
+            HTTP_REQUESTS.labels(request.method, route_path, str(status_code)).inc()
+            HTTP_DURATION.labels(request.method, route_path).observe(duration)
+            access_logger.info(
+                "request",
+                extra={
+                    "request_id": request_id,
+                    "method": request.method,
+                    "path": request.url.path,
+                    "route": route_path,
+                    "status": status_code,
+                    "duration_ms": round(duration * 1000, 1),
+                },
+            )
+        request_id_var.reset(token)
 
 
 # Сервисы не знают про HTTP: их исключения превращаем в ответы здесь.
@@ -45,3 +88,10 @@ def ready(db: Session = Depends(get_db)):
     except SQLAlchemyError:
         return JSONResponse(status_code=503, content={"status": "database unavailable"})
     return {"status": "ready"}
+
+
+# Метрики для Prometheus. Не входит в публичный контракт (include_in_schema=False) и наружу не отдаётся:
+# nginx в образе web закрывает /api/metrics, а Prometheus читает этот адрес прямо у подов внутри кластера.
+@app.get("/metrics", include_in_schema=False)
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
