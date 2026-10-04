@@ -22,8 +22,23 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # Файлы из /assets/ имеют хеш в имени (index-DkZKlZna.js): под одним именем содержимое никогда не меняется,
+    # поэтому браузер может хранить их год и даже не спрашивать сервер (immutable).
+    # Важно: add_header внутри location ОТМЕНЯЕТ заголовки, заданные выше на уровне server, поэтому защитные заголовки повторены.
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options DENY always;
+    }
+
     # Одностраничное приложение: любой другой адрес отдаёт index.html.
+    # index.html без хеша в имени и ссылается на актуальные файлы из /assets/. no-cache значит «перед показом
+    # спроси сервер, не изменился ли файл» (дёшево, по ETag). Без этого браузер мог показывать старую страницу:
+    # например, ту, что раньше отдавал другой сервис на этом же адресе (так было с grafana.localhost).
     location / {
         try_files $uri /index.html;
+        add_header Cache-Control "no-cache" always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options DENY always;
     }
 }

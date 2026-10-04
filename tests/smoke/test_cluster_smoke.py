@@ -83,3 +83,26 @@ def test_popular_books_endpoint_is_reachable_through_ingress(api):
 
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+
+
+def test_html_must_be_revalidated_but_hashed_assets_are_cached_for_long():
+    """index.html без хеша в имени: браузер обязан спрашивать сервер (иначе покажет старую страницу, например
+    оставшуюся от другого сервиса на том же адресе). Файлы из /assets/ имеют хеш и не меняются: кэшируются надолго."""
+    import re
+
+    import httpx2 as httpx
+
+    from tests.smoke.conftest import SMOKE_URL
+
+    with httpx.Client(base_url=SMOKE_URL, timeout=10) as client:
+        page = client.get("/")
+        asset_path = re.search(r'src="(/assets/[^"]+\.js)"', page.text).group(1)
+        asset = client.get(asset_path)
+
+    assert page.headers["Cache-Control"] == "no-cache"
+    assert "immutable" in asset.headers["Cache-Control"]
+    assert "max-age=31536000" in asset.headers["Cache-Control"]
+    # защитные заголовки на месте и у страницы, и у файлов (add_header в location сбрасывает унаследованные)
+    for response in (page, asset):
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
+        assert response.headers["X-Frame-Options"] == "DENY"
