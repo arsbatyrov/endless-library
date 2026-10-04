@@ -54,5 +54,20 @@ k apply -f k8s/ingress/traefik.yaml
 k -n traefik rollout status deployment/traefik --timeout=180s
 k apply -f k8s/ingress/ingress.yaml
 
+# Правило Ingress подхватывается не мгновенно: до этого момента Traefik отвечает своим «404 page not found».
+# Ждём, пока приложение реально ответит через вход, чтобы тесты после деплоя не попали в этот промежуток.
+echo "Ожидание ответа через Ingress..."
+for _ in $(seq 1 60); do
+  if curl -fsS -o /dev/null http://127.0.0.1:8090/api/ready; then
+    ready=1
+    break
+  fi
+  sleep 2
+done
+if [ -z "${ready:-}" ]; then
+  echo "Приложение не ответило через Ingress за 2 минуты" >&2
+  exit 1
+fi
+
 echo
 echo "Готово. Интерфейс: http://127.0.0.1:8090   API: http://127.0.0.1:8090/api/health"
