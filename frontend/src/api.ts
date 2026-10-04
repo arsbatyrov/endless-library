@@ -1,4 +1,4 @@
-import type { Book, BookInput, Loan, LoanReturn, Reader, ReaderInput } from "./types";
+import type { Book, BookInput, Loan, LoanReturn, PopularBook, Reader, ReaderInput } from "./types";
 
 /** Ошибка ответа API: хранит HTTP-код и (для ответа 422) ошибки по полям формы. */
 export class ApiError extends Error {
@@ -62,6 +62,10 @@ function jsonInit(method: string, body: unknown): RequestInit {
 
 export function getBooks(signal?: AbortSignal): Promise<Book[]> {
   return request<Book[]>("/api/books", { signal });
+}
+
+export function getPopularBooks(limit: number, signal?: AbortSignal): Promise<PopularBook[]> {
+  return request<PopularBook[]>(`/api/books/popular?limit=${limit}`, { signal });
 }
 
 export function createBook(input: BookInput): Promise<Book> {

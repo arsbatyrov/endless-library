@@ -16,7 +16,9 @@ if not DATABASE_URL:
         "(or set the environment variable) and start the database: docker compose up -d db"
     )
 
-engine = create_engine(DATABASE_URL)
+# pool_pre_ping: перед выдачей соединения из пула SQLAlchemy проверяет, что оно живо, а мёртвое
+# заменяет новым. Без этого после перезапуска базы первый запрос на «протухшем» соединении падал бы с 500.
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 

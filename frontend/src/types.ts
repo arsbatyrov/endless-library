@@ -7,6 +7,12 @@ export interface Book {
   copies_available: number;
 }
 
+// См. PopularBook в app/schemas.py: книга и число её выдач за всё время.
+export interface PopularBook {
+  book: Book;
+  loans: number;
+}
+
 // Данные, которые форма отправляет при создании и изменении книги (см. BookCreate).
 // Пустые числовые поля превращаются в null: проверку и сообщение об ошибке даёт сервер.
 export interface BookInput {

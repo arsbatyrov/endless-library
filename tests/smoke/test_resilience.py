@@ -114,15 +114,18 @@ def test_api_reports_not_ready_while_database_is_down():
         _run_kubectl("wait", "--for=delete", "pod/db-0", "--timeout=120s", timeout=140)
         with httpx.Client(base_url=f"{SMOKE_URL}/api", timeout=10) as client:
             deadline = time.monotonic() + 60
-            ready_status = None
+            api_is_ready = True
             while time.monotonic() < deadline:
-                ready_status = client.get("/ready").status_code
-                if ready_status != 200:
+                try:
+                    api_is_ready = client.get("/ready").status_code == 200
+                except httpx.HTTPError:
+                    # Готовых подов нет: в зависимости от окружения запрос получает 502/503 или зависает
+                    # до таймаута. Оба исхода значат «не готов».
+                    api_is_ready = False
+                if not api_is_ready:
                     break
                 time.sleep(1)
-            # Service перестаёт слать запросы подам с красной readiness: ответ 503 приходит от Ingress/nginx
-            # (нет готовых подов) или от самого API; важно, что это не 200.
-            assert ready_status != 200
+            assert not api_is_ready, "API остался «готовым» при недоступной базе"
             # Даём liveness-пробе время сработать несколько раз (период 10 с): перезапусков быть не должно.
             time.sleep(25)
             assert _api_restart_total() == restarts_before
@@ -138,3 +141,40 @@ def test_api_reports_not_ready_while_database_is_down():
                 except httpx.HTTPError:
                     pass
                 time.sleep(1)
+
+
+def test_api_keeps_working_when_redis_is_down(api, unique_title, created_books):
+    """Redis это ускоритель, а не источник правды: без него API отвечает (из Postgres), остаётся готовым
+    (readiness от Redis не зависит), а после возвращения Redis кэш снова работает."""
+    created = api.post(
+        "/books",
+        json={"title": unique_title, "author": "No cache", "year": 2024, "copies_available": 1},
+    )
+    created_books.append(created.json()["id"])
+
+    _run_kubectl("scale", "deployment/redis", "--replicas=0")
+    try:
+        _run_kubectl(
+            "wait", "--for=delete", "pod", "-l", "app=redis", "--timeout=120s", timeout=140
+        )
+
+        listing = api.get("/books")
+        ready = api.get("/ready")
+
+        assert listing.status_code == 200
+        assert any(book["title"] == unique_title for book in listing.json())
+        assert ready.status_code == 200
+    finally:
+        _run_kubectl("scale", "deployment/redis", "--replicas=1")
+        _run_kubectl("rollout", "status", "deployment/redis", "--timeout=120s", timeout=140)
+
+    # Redis вернулся пустым: первое чтение MISS, второе HIT.
+    deadline = time.monotonic() + 30
+    headers = []
+    while time.monotonic() < deadline:
+        api.get("/books")
+        headers.append(api.get("/books").headers.get("X-Cache"))
+        if headers[-1] == "HIT":
+            break
+        time.sleep(1)
+    assert headers[-1] == "HIT", f"кэш не восстановился после возвращения Redis: {headers}"

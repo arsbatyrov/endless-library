@@ -30,6 +30,10 @@ td {
   background: #fdeeee;
 }
 
+.popular {
+  margin-top: 32px;
+}
+
 .toolbar {
   margin-bottom: 16px;
 }

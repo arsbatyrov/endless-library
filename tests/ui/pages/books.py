@@ -50,6 +50,11 @@ class BooksPage:
         self.notice = page.get_by_test_id("books-notice")
         self.action_error = page.get_by_test_id("books-action-error")
         self.form = BookForm(page)
+        # блок «Популярные книги»
+        self.popular = page.get_by_test_id("popular")
+        self.popular_items = page.get_by_test_id("popular-item")
+        self.popular_empty = page.get_by_test_id("popular-empty")
+        self.popular_error = page.get_by_test_id("popular-error")
 
     def row(self, title: str) -> Locator:
         return self.rows.filter(has_text=title)

@@ -20,6 +20,13 @@ class BookRead(BookCreate):
     id: int
 
 
+class PopularBook(BaseModel):
+    """Книга в рейтинге популярности: сама книга и сколько раз её выдавали."""
+
+    book: BookRead
+    loans: int
+
+
 class ReaderCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     email: str = Field(pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$", max_length=200)

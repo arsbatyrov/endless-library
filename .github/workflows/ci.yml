@@ -86,6 +86,16 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
+      # Redis для тестов кэша (они используют базу №15 и очищают её).
+      redis:
+        image: redis:8.10-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
 
     env:
       # Тесты сами создадут отдельную базу library_test и применят миграции.

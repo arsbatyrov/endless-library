@@ -59,3 +59,27 @@ def test_book_added_in_the_ui_is_saved_in_the_database(app, api, unique_title, c
 
     app.page.reload()
     expect(app.books.row(unique_title)).to_be_visible()
+
+
+def test_book_list_is_cached_in_redis_shared_by_all_api_pods(api, unique_title, created_books):
+    """Запись сбрасывает кэш списка; два следующих чтения: первое из базы (MISS), второе из Redis (HIT).
+    Подов API два, но кэш у них общий, поэтому HIT не зависит от того, какой под ответил."""
+    created = api.post(
+        "/books",
+        json={"title": unique_title, "author": "Cache", "year": 2024, "copies_available": 1},
+    )
+    created_books.append(created.json()["id"])
+
+    first = api.get("/books")
+    second = api.get("/books")
+
+    assert first.headers["X-Cache"] == "MISS"
+    assert second.headers["X-Cache"] == "HIT"
+    assert any(book["title"] == unique_title for book in second.json())
+
+
+def test_popular_books_endpoint_is_reachable_through_ingress(api):
+    response = api.get("/books/popular?limit=3")
+
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)

@@ -29,16 +29,24 @@ if not TEST_URL.database.endswith("_test"):
 
 os.environ["DATABASE_URL"] = TEST_URL.render_as_string(hide_password=False)
 
+# Кэш по умолчанию ВЫКЛЮЧЕН во всех тестах (пустое значение перебивает REDIS_URL из .env): иначе тесты
+# читали бы и портили рабочий кэш и влияли друг на друга. Кэш включают только тесты с фикстурой redis_cache.
+os.environ["REDIS_URL"] = ""
+REDIS_TEST_URL = os.environ.get("REDIS_TEST_URL", "redis://127.0.0.1:6379/15")
+
 # Импорты приложения только после подмены DATABASE_URL (поэтому E402).
+import redis  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from app import models  # noqa: E402, F401  (регистрирует таблицы в Base)
+from app.cache import cache  # noqa: E402
 from app.database import Base, get_db  # noqa: E402
 from app.main import app  # noqa: E402
 
 # Тесты, использующие любую из этих фикстур (напрямую или через другие), работают с базой.
 DB_FIXTURES = {"engine", "migration_url"}
+REDIS_FIXTURES = {"redis_cache", "redis_client"}
 
 
 def pytest_collection_modifyitems(items):
@@ -51,6 +59,8 @@ def pytest_collection_modifyitems(items):
     for item in items:
         if DB_FIXTURES & set(item.fixturenames):
             item.add_marker(pytest.mark.db)
+        if REDIS_FIXTURES & set(item.fixturenames):
+            item.add_marker(pytest.mark.redis)
         parts = Path(str(item.fspath)).parts
         if "ui" in parts:
             item.add_marker(pytest.mark.ui)
@@ -100,3 +110,33 @@ def client(db):
     yield TestClient(app)
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def redis_client():
+    """Подключение к ТЕСТОВОМУ Redis (база №15). Перед тестом и после него база очищается.
+
+    Защита как у тестовой базы Postgres: рабочий кэш (база №0) трогать нельзя, поэтому номер базы 0 не принимается.
+    """
+    client = redis.Redis.from_url(REDIS_TEST_URL, decode_responses=True, socket_connect_timeout=2)
+    if client.connection_pool.connection_kwargs.get("db", 0) == 0:
+        pytest.exit(
+            f"REDIS_TEST_URL={REDIS_TEST_URL} points at Redis database 0, which is the working cache. "
+            "Use another database number, for example /15",
+            returncode=2,
+        )
+    try:
+        client.ping()
+    except redis.RedisError:
+        pytest.fail("Redis is not reachable for tests. Start it: docker compose up -d redis")
+    client.flushdb()
+    yield client
+    client.flushdb()
+    client.close()
+
+
+@pytest.fixture
+def redis_cache(redis_client, monkeypatch):
+    """Включает кэш приложения на тестовом Redis. Возвращает тот же объект cache, что используют роутеры."""
+    monkeypatch.setattr(cache, "client", redis_client)
+    return cache
