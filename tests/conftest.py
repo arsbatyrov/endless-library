@@ -53,8 +53,8 @@ def pytest_collection_modifyitems(items):
     """Автоматически помечает маркером `db` все тесты, которым нужна база (через фикстуры).
 
     Тесты без базы можно запускать отдельно и без Docker: pytest -m "not db"
-    Тестам из папки tests/ui ставится маркер `ui`, из tests/smoke маркер `smoke`
-    (по умолчанию они не запускаются: pytest -m ui, pytest tests/smoke -m smoke).
+    Маркеры по папкам: tests/ui -> `ui`, tests/smoke -> `smoke`, tests/contract -> `contract`
+    (по умолчанию они не запускаются: pytest -m ui, pytest tests/smoke -m smoke, pytest tests/contract -m contract).
     """
     for item in items:
         if DB_FIXTURES & set(item.fixturenames):
@@ -66,6 +66,8 @@ def pytest_collection_modifyitems(items):
             item.add_marker(pytest.mark.ui)
         if "smoke" in parts:
             item.add_marker(pytest.mark.smoke)
+        if "contract" in parts:
+            item.add_marker(pytest.mark.contract)
 
 
 @pytest.fixture(scope="session")

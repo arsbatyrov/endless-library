@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from app.cache import BOOKS_LIST_KEY, book_key, cache
 from app.database import get_db
 from app.models import Book
-from app.schemas import BookCreate, BookRead, PopularBook
+from app.openapi_responses import BAD_REQUEST, CONFLICT, NOT_FOUND
+from app.schemas import BookCreate, BookRead, PathId, PopularBook
 from app.services.loans import count_loans_per_book, ensure_book_has_no_loans
 
 router = APIRouter(prefix="/books", tags=["books"])
@@ -18,7 +19,9 @@ def get_book_or_404(book_id: int, db: Session) -> Book:
     return book
 
 
-@router.post("", response_model=BookRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=BookRead, status_code=status.HTTP_201_CREATED, responses={**BAD_REQUEST}
+)
 def create_book(data: BookCreate, db: Session = Depends(get_db)):
     book = Book(**data.model_dump())
     db.add(book)
@@ -60,8 +63,15 @@ def popular_books(limit: int = Query(default=5, ge=1, le=20), db: Session = Depe
     return [{"book": _to_json(books[book_id]), "loans": count} for book_id, count in top]
 
 
-@router.get("/{book_id}", response_model=BookRead)
-def get_book(book_id: int, response: Response, db: Session = Depends(get_db)):
+# PUT и DELETE на /books/popular иначе попали бы в маршруты /{book_id} и получили бы 422 («popular не число»).
+# Адрес поддерживает только GET, поэтому честный ответ: 405 с перечнем разрешённых методов.
+@router.api_route("/popular", methods=["PUT", "DELETE"], include_in_schema=False)
+def popular_method_not_allowed():
+    raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, headers={"Allow": "GET"})
+
+
+@router.get("/{book_id}", response_model=BookRead, responses={**NOT_FOUND})
+def get_book(book_id: PathId, response: Response, db: Session = Depends(get_db)):
     key = book_key(book_id)
     cached = cache.get_json(key)
     if cached is not None:
@@ -73,8 +83,8 @@ def get_book(book_id: int, response: Response, db: Session = Depends(get_db)):
     return data
 
 
-@router.put("/{book_id}", response_model=BookRead)
-def update_book(book_id: int, data: BookCreate, db: Session = Depends(get_db)):
+@router.put("/{book_id}", response_model=BookRead, responses={**BAD_REQUEST, **NOT_FOUND})
+def update_book(book_id: PathId, data: BookCreate, db: Session = Depends(get_db)):
     book = get_book_or_404(book_id, db)
     for field, value in data.model_dump().items():
         setattr(book, field, value)
@@ -84,8 +94,10 @@ def update_book(book_id: int, data: BookCreate, db: Session = Depends(get_db)):
     return book
 
 
-@router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_book(book_id: int, db: Session = Depends(get_db)):
+@router.delete(
+    "/{book_id}", status_code=status.HTTP_204_NO_CONTENT, responses={**NOT_FOUND, **CONFLICT}
+)
+def delete_book(book_id: PathId, db: Session = Depends(get_db)):
     book = get_book_or_404(book_id, db)
     ensure_book_has_no_loans(db, book_id)
     db.delete(book)
