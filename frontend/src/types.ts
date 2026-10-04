@@ -1,3 +1,5 @@
+import type { Msg } from "./i18n";
+
 // Форма данных, которые отдаёт API (см. BookRead в app/schemas.py).
 export interface Book {
   id: number;
@@ -51,6 +53,6 @@ export interface LoanReturn extends Loan {
 
 /** Ошибка, которую форма показывает пользователю: общее сообщение и сообщения по полям. */
 export interface FormError {
-  message: string;
+  display: Msg;
   fieldErrors: Record<string, string>;
 }

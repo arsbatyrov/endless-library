@@ -124,3 +124,20 @@ select {
   border-color: #d5d9de;
   border-bottom: 2px solid #fff;
 }
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.locale-switcher button {
+  margin-right: 0;
+  margin-left: 4px;
+}
+
+.locale-switcher button[aria-pressed="true"] {
+  font-weight: 700;
+  background: #1b1f24;
+  color: #fff;
+}

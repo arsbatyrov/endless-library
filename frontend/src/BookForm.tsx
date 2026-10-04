@@ -2,6 +2,7 @@ import { type FormEvent, useState } from "react";
 
 import { ApiError, createBook, updateBook } from "./api";
 import { FormField } from "./FormField";
+import { msg, useI18n } from "./i18n";
 import type { Book, BookInput, FormError } from "./types";
 
 interface Props {
@@ -17,6 +18,7 @@ function toNumber(text: string): number | null {
 }
 
 export function BookForm({ book, onSaved, onCancel }: Props) {
+  const { t, show } = useI18n();
   const [title, setTitle] = useState(book?.title ?? "");
   const [author, setAuthor] = useState(book?.author ?? "");
   const [year, setYear] = useState(book?.year?.toString() ?? "");
@@ -41,7 +43,9 @@ export function BookForm({ book, onSaved, onCancel }: Props) {
       onSaved(saved);
     } catch (caught) {
       setError(
-        caught instanceof ApiError ? caught : { message: "Не удалось связаться с сервером", fieldErrors: {} },
+        caught instanceof ApiError
+          ? { display: caught.display, fieldErrors: caught.fieldErrors }
+          : { display: msg("common.networkError"), fieldErrors: {} },
       );
     } finally {
       setSubmitting(false);
@@ -51,22 +55,35 @@ export function BookForm({ book, onSaved, onCancel }: Props) {
   const errors = error?.fieldErrors ?? {};
 
   return (
-    <form onSubmit={handleSubmit} noValidate data-testid="book-form" aria-label={book ? "Изменение книги" : "Новая книга"}>
-      <h3>{book ? "Изменить книгу" : "Новая книга"}</h3>
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      data-testid="book-form"
+      aria-label={book ? t("bookForm.editAria") : t("bookForm.new")}
+    >
+      <h3>{book ? t("bookForm.edit") : t("bookForm.new")}</h3>
 
       {error && (
         <p role="alert" className="form-error" data-testid="book-form-error">
-          {error.message}
+          {show(error.display)}
         </p>
       )}
 
-      <FormField testIdPrefix="book-form" name="title" label="Название" value={title} onChange={setTitle} error={errors.title} />
-      <FormField testIdPrefix="book-form" name="author" label="Автор" value={author} onChange={setAuthor} error={errors.author} />
-      <FormField testIdPrefix="book-form" name="year" label="Год издания" type="number" value={year} onChange={setYear} error={errors.year} />
+      <FormField testIdPrefix="book-form" name="title" label={t("bookForm.title")} value={title} onChange={setTitle} error={errors.title} />
+      <FormField testIdPrefix="book-form" name="author" label={t("bookForm.author")} value={author} onChange={setAuthor} error={errors.author} />
+      <FormField
+        testIdPrefix="book-form"
+        name="year"
+        label={t("bookForm.year")}
+        type="number"
+        value={year}
+        onChange={setYear}
+        error={errors.year}
+      />
       <FormField
         testIdPrefix="book-form"
         name="copies_available"
-        label="Количество экземпляров"
+        label={t("bookForm.copies")}
         type="number"
         value={copies}
         onChange={setCopies}
@@ -75,10 +92,10 @@ export function BookForm({ book, onSaved, onCancel }: Props) {
 
       <div className="actions">
         <button type="submit" disabled={submitting} data-testid="book-form-submit">
-          Сохранить
+          {t("common.save")}
         </button>
         <button type="button" onClick={onCancel} data-testid="book-form-cancel">
-          Отмена
+          {t("common.cancel")}
         </button>
       </div>
     </form>
