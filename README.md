@@ -164,7 +164,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Тесты
 
-Всего 339 тестов. Нужны запущенные база и Redis (`docker compose up -d db redis`). Тесты используют отдельную базу
+Всего 340 тестов. Нужны запущенные база и Redis (`docker compose up -d db redis`). Тесты используют отдельную базу
 `<имя>_test` и базу Redis №15, сами создают и очищают их; рабочие данные не затрагиваются.
 
 ```powershell
@@ -187,7 +187,7 @@ pytest tests/smoke -m smoke --no-cov         # тесты развёрнутог
 | `tests/concurrency` | 2 | гонки | одновременные запросы к одним данным | Tests |
 | `tests/contract` | 18 | контракт | Schemathesis по OpenAPI и снимок схемы | Contract tests |
 | `tests/ui` | 77 | интерфейс | сценарии в настоящем браузере (Playwright), ошибки, сбои сети | UI tests |
-| `tests/smoke` | 18 | развёрнутая система | Ingress, данные до базы, устойчивость (обновление без потерь, перезапуск базы и Redis), Prometheus и Grafana | Kubernetes |
+| `tests/smoke` | 19 | развёрнутая система | Ingress, данные до базы, устойчивость (обновление без потерь, перезапуск базы и Redis), Prometheus и Grafana | Kubernetes |
 
 Остальные проверки CI: линтер и формат (Lint), типы и сборка фронтенда (Frontend), сборка образов и проверка
 через nginx (Docker images), уязвимости зависимостей и образов (Security), анализ кода (CodeQL).
