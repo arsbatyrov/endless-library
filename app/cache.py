@@ -17,6 +17,8 @@ import redis
 from dotenv import load_dotenv
 from redis.exceptions import RedisError
 
+from app.metrics import CACHE_REQUESTS
+
 load_dotenv()
 
 logger = logging.getLogger("library.cache")
@@ -68,7 +70,9 @@ class Cache:
             raw = self.client.get(key)
         except RedisError as exc:
             logger.warning("cache read failed for %s: %s", key, exc)
+            CACHE_REQUESTS.labels("error").inc()
             return None
+        CACHE_REQUESTS.labels("miss" if raw is None else "hit").inc()
         return None if raw is None else json.loads(raw)
 
     def set_json(self, key: str, value) -> None:

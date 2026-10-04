@@ -1,0 +1,9 @@
+# Говорит Grafana, где лежат готовые дашборды: все файлы .json из этой папки загружаются при старте.
+apiVersion: 1
+providers:
+  - name: library
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/dashboards

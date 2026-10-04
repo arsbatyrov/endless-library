@@ -8,6 +8,11 @@ server {
     add_header X-Content-Type-Options nosniff always;
     add_header X-Frame-Options DENY always;
 
+    # Метрики приложения наружу не отдаём: их читает Prometheus прямо у подов внутри кластера.
+    location = /api/metrics {
+        return 404;
+    }
+
     # /api/books -> http://<API_UPSTREAM>/books (префикс /api отбрасывается слэшем в конце proxy_pass)
     location /api/ {
         proxy_pass ${API_UPSTREAM}/;

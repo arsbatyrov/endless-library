@@ -1,0 +1,9 @@
+# Источник данных Grafana: Prometheus. Подключается автоматически при старте (provisioning), руками настраивать не нужно.
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus.monitoring.svc:9090
+    isDefault: true
