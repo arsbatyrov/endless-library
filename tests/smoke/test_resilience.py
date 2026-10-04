@@ -114,15 +114,18 @@ def test_api_reports_not_ready_while_database_is_down():
         _run_kubectl("wait", "--for=delete", "pod/db-0", "--timeout=120s", timeout=140)
         with httpx.Client(base_url=f"{SMOKE_URL}/api", timeout=10) as client:
             deadline = time.monotonic() + 60
-            ready_status = None
+            api_is_ready = True
             while time.monotonic() < deadline:
-                ready_status = client.get("/ready").status_code
-                if ready_status != 200:
+                try:
+                    api_is_ready = client.get("/ready").status_code == 200
+                except httpx.HTTPError:
+                    # Готовых подов нет: в зависимости от окружения запрос получает 502/503 или зависает
+                    # до таймаута. Оба исхода значат «не готов».
+                    api_is_ready = False
+                if not api_is_ready:
                     break
                 time.sleep(1)
-            # Service перестаёт слать запросы подам с красной readiness: ответ 503 приходит от Ingress/nginx
-            # (нет готовых подов) или от самого API; важно, что это не 200.
-            assert ready_status != 200
+            assert not api_is_ready, "API остался «готовым» при недоступной базе"
             # Даём liveness-пробе время сработать несколько раз (период 10 с): перезапусков быть не должно.
             time.sleep(25)
             assert _api_restart_total() == restarts_before
