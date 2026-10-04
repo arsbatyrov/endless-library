@@ -29,6 +29,9 @@ spec:
           env:
             - name: DATABASE_URL
               valueFrom: {secretKeyRef: {name: library-db, key: DATABASE_URL}}
+            # Снаружи API виден под /api (nginx в web отрезает префикс): нужно странице документации /api/docs.
+            - name: API_ROOT_PATH
+              value: /api
             - name: REDIS_URL
               valueFrom: {configMapKeyRef: {name: library-config, key: REDIS_URL}}
           # startup: даём приложению время запуститься; пока не прошла, остальные пробы не работают.
