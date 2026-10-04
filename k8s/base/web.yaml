@@ -1,0 +1,56 @@
+# Web: nginx отдаёт интерфейс и проксирует /api в Service api.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: library
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: web}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels: {app: web}
+    spec:
+      containers:
+        - name: web
+          image: library-web:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              name: http
+          env:
+            - name: API_UPSTREAM
+              valueFrom: {configMapKeyRef: {name: library-config, key: API_UPSTREAM}}
+          readinessProbe:
+            httpGet: {path: /, port: http}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /, port: http}
+            periodSeconds: 10
+          # Остановка пода: Kubernetes одновременно шлёт SIGTERM и убирает под из списка адресов, но Ingress и
+          # kube-proxy узнают об этом с задержкой. Пауза перед SIGTERM даёт время перестать слать запросы
+          # на уходящий под (иначе часть запросов во время обновления падает).
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {memory: 128Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: library
+spec:
+  selector: {app: web}
+  ports:
+    - port: 80
+      targetPort: http

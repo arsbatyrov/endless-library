@@ -1,0 +1,74 @@
+# PostgreSQL в кластере. StatefulSet (а не Deployment): у базы есть состояние, и том с данными
+# привязан к конкретному поду и переживает его перезапуск.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db
+  namespace: library
+spec:
+  serviceName: db
+  replicas: 1
+  selector:
+    matchLabels: {app: db}
+  template:
+    metadata:
+      labels: {app: db}
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_USER
+              valueFrom: {configMapKeyRef: {name: library-config, key: POSTGRES_USER}}
+            - name: POSTGRES_DB
+              valueFrom: {configMapKeyRef: {name: library-config, key: POSTGRES_DB}}
+            - name: POSTGRES_PASSWORD
+              valueFrom: {secretKeyRef: {name: library-db, key: POSTGRES_PASSWORD}}
+            # Данные в подпапке тома: в корне тома может лежать служебное содержимое, а Postgres требует пустую папку.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          # readiness: можно ли подключаться (на это смотрит Service); liveness: жив ли процесс.
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 512Mi}
+  # Заготовка для тома: на каждый под создаётся свой PersistentVolumeClaim (запрос «дайте 1 ГБ диска»).
+  # В kind его выдаёт local-path-provisioner (StorageClass standard).
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+---
+# Service: постоянный адрес db:5432 внутри кластера (поды приходят и уходят, имя остаётся).
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  namespace: library
+spec:
+  selector: {app: db}
+  ports:
+    - port: 5432
+      targetPort: postgres

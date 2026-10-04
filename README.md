@@ -73,6 +73,32 @@ docker pull ghcr.io/arsbatyrov/library-api:latest
 Образы собираются из тех же `Dockerfile`, которые проверяются в CI. Для развёртывания лучше брать тег
 `sha-<коммит>` (точная версия), а не `latest`.
 
+## Kubernetes (локальный кластер)
+
+Приложение можно развернуть в локальном кластере [kind](https://kind.sigs.k8s.io/) (Kubernetes внутри Docker).
+Нужны Docker, `kind`, `kubectl`; скрипт запускается в Git Bash (на Windows) или в обычной оболочке Linux/macOS.
+
+```bash
+kind create cluster --config k8s/kind-config.yaml   # один раз: кластер library
+bash k8s/deploy.sh                                   # сборка образов, загрузка в кластер, развёртывание
+# Интерфейс: http://127.0.0.1:8090   API: http://127.0.0.1:8090/api/health
+pytest tests/smoke -m smoke --no-cov                 # дымовые тесты и проверки устойчивости
+kind delete cluster --name library                   # убрать всё
+```
+
+| Файл | Что это |
+|---|---|
+| `k8s/kind-config.yaml` | Кластер: образ узла v1.34.0, вход на порт 8090 вашего компьютера |
+| `k8s/base/` | Namespace, ConfigMap, база (StatefulSet с постоянным томом), API и web (Deployment, 2 реплики, пробы) |
+| `k8s/migrate-job.yaml` | Job с миграциями (`alembic upgrade head`), новый при каждом деплое |
+| `k8s/ingress/` | Входной контроллер Traefik и правило Ingress |
+| `k8s/deploy.sh` | Развёртывание целиком; пароль базы генерируется и хранится только в Secret кластера |
+
+Что проверяют `tests/smoke`: приложение открывается через Ingress, данные из браузера доходят до базы,
+плавное обновление API не теряет запросы, данные переживают перезапуск базы, при недоступной базе API
+выводится из балансировки (readiness), но не перезапускается (liveness). В CI это задание
+«Kubernetes (kind cluster smoke tests)».
+
 ## Тесты
 
 Нужна запущенная база (`docker compose up -d db`). Тесты используют отдельную базу

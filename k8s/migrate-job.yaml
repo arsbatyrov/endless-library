@@ -1,0 +1,32 @@
+# Job: разовая задача «накатить миграции». В отличие от Deployment, ждёт успешного завершения.
+# generateName: каждый деплой создаёт НОВЫЙ Job (migrate-xxxxx), старые удаляются сами через час:
+# завершённый Job нельзя «перезапустить» и менять, поэтому имя каждый раз новое.
+# Создаётся командой `kubectl create -f` (не apply), см. deploy.sh.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: migrate-
+  namespace: library
+spec:
+  # База может ещё запускаться: Job сам повторяет попытки (до 8 раз с нарастающей паузой).
+  backoffLimit: 8
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: library-api:local
+          imagePullPolicy: IfNotPresent
+          command: ["alembic", "upgrade", "head"]
+          env:
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: library-db, key: DATABASE_URL}}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities: {drop: ["ALL"]}
