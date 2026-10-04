@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { ApiError, deleteBook, getBooks } from "./api";
 import { BookForm } from "./BookForm";
+import { PopularBooks } from "./PopularBooks";
 import type { Book } from "./types";
 
 // Загрузка списка: ровно одно из трёх состояний.
@@ -190,6 +191,8 @@ export function BooksPage() {
       )}
 
       {renderList()}
+
+      <PopularBooks refreshKey={attempt} />
     </section>
   );
 }

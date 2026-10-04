@@ -138,3 +138,40 @@ def test_api_reports_not_ready_while_database_is_down():
                 except httpx.HTTPError:
                     pass
                 time.sleep(1)
+
+
+def test_api_keeps_working_when_redis_is_down(api, unique_title, created_books):
+    """Redis это ускоритель, а не источник правды: без него API отвечает (из Postgres), остаётся готовым
+    (readiness от Redis не зависит), а после возвращения Redis кэш снова работает."""
+    created = api.post(
+        "/books",
+        json={"title": unique_title, "author": "No cache", "year": 2024, "copies_available": 1},
+    )
+    created_books.append(created.json()["id"])
+
+    _run_kubectl("scale", "deployment/redis", "--replicas=0")
+    try:
+        _run_kubectl(
+            "wait", "--for=delete", "pod", "-l", "app=redis", "--timeout=120s", timeout=140
+        )
+
+        listing = api.get("/books")
+        ready = api.get("/ready")
+
+        assert listing.status_code == 200
+        assert any(book["title"] == unique_title for book in listing.json())
+        assert ready.status_code == 200
+    finally:
+        _run_kubectl("scale", "deployment/redis", "--replicas=1")
+        _run_kubectl("rollout", "status", "deployment/redis", "--timeout=120s", timeout=140)
+
+    # Redis вернулся пустым: первое чтение MISS, второе HIT.
+    deadline = time.monotonic() + 30
+    headers = []
+    while time.monotonic() < deadline:
+        api.get("/books")
+        headers.append(api.get("/books").headers.get("X-Cache"))
+        if headers[-1] == "HIT":
+            break
+        time.sleep(1)
+    assert headers[-1] == "HIT", f"кэш не восстановился после возвращения Redis: {headers}"

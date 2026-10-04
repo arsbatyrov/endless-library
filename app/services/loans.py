@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.cache import cache
 from app.models import Book, Loan, Reader
 from app.services.errors import BusinessRuleError, NotFoundError
 from app.services.fines import calculate_fine
@@ -56,6 +57,10 @@ def issue_book(db: Session, book_id: int, reader_id: int, now: datetime) -> Loan
     db.add(loan)
     db.commit()
     db.refresh(loan)
+    # Остаток экземпляров изменился: карточка и список в кэше устарели. Счётчик популярности растёт.
+    # Кэш трогаем только после commit: пока транзакция не зафиксирована, данные ещё могут откатиться.
+    cache.invalidate_book(book_id)
+    cache.record_loan(book_id)
     return loan
 
 
@@ -75,7 +80,14 @@ def return_book(db: Session, loan_id: int, now: datetime) -> tuple[Loan, int]:
     fine = calculate_fine(loan.due_at, now)
     db.commit()
     db.refresh(loan)
+    cache.invalidate_book(loan.book_id)
     return loan, fine
+
+
+def count_loans_per_book(db: Session) -> dict[int, int]:
+    """Сколько раз выдавали каждую книгу (за всё время): {id книги: число выдач}."""
+    stmt = select(Loan.book_id, func.count()).group_by(Loan.book_id)
+    return {book_id: count for book_id, count in db.execute(stmt)}
 
 
 def ensure_book_has_no_loans(db: Session, book_id: int) -> None:

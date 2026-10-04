@@ -34,6 +34,7 @@ fi
 echo "== 3/6 База, API и web"
 k apply -k k8s/base
 k -n library rollout status statefulset/db --timeout=180s
+k -n library rollout status deployment/redis --timeout=180s
 
 echo "== 4/6 Миграции (Job)"
 job="$(k create -f k8s/migrate-job.yaml -o name)"

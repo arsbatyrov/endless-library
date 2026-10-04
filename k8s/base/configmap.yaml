@@ -10,3 +10,5 @@ data:
   POSTGRES_DB: library
   # Фронтенд (nginx) проксирует /api сюда: имя Service api внутри кластера.
   API_UPSTREAM: http://api:8000
+  # Кэш. Если Redis недоступен, API продолжает работать без кэша (readiness от Redis НЕ зависит).
+  REDIS_URL: redis://redis:6379/0

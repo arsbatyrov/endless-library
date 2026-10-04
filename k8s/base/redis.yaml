@@ -1,0 +1,52 @@
+# Redis: кэш и счётчики популярности. Это Deployment, а не StatefulSet: данных, которые нельзя потерять, здесь нет.
+# Диск не подключаем (--save "" --appendonly no): после перезапуска кэш пустой и наполняется заново из Postgres.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: library
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: redis}
+  template:
+    metadata:
+      labels: {app: redis}
+    spec:
+      containers:
+        - name: redis
+          image: redis:8.10-alpine
+          # command заменяет стандартный запуск образа, поэтому пользователя задаём явно (redis = 999:1000).
+          command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+          ports:
+            - containerPort: 6379
+              name: redis
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 1000
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: library
+spec:
+  selector: {app: redis}
+  ports:
+    - port: 6379
+      targetPort: redis

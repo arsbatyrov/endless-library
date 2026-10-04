@@ -20,6 +20,21 @@ services:
       timeout: 3s
       retries: 10
 
+  # Кэш и счётчики популярности. Данные не сохраняются на диск (--save "" --appendonly no): это кэш,
+  # потерять его не страшно, всё восстановится из Postgres. maxmemory + allkeys-lru: при нехватке памяти
+  # Redis сам выбрасывает давно не используемые записи.
+  redis:
+    image: redis:8.10-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   # ---- Приложение целиком в контейнерах. Запуск: docker compose --profile full up -d --build ----
   # Профиль full: обычная команда `docker compose up -d db` по-прежнему поднимает только базу.
 
@@ -42,8 +57,11 @@ services:
     image: library-api:local
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
