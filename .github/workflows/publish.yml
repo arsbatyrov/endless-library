@@ -30,9 +30,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: library-api
+          - image: endless-library-api
             context: .
-          - image: library-web
+          - image: endless-library-web
             context: ./frontend
 
     steps:
@@ -62,7 +62,7 @@ jobs:
             type=semver,pattern={{version}}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.description=Library demo: ${{ matrix.image }}
+            org.opencontainers.image.description=Endless Library: ${{ matrix.image }}
 
       - name: Build and push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0

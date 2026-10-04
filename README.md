@@ -1,11 +1,12 @@
-# Library API
+# Endless Library
 
-[![CI](https://github.com/arsbatyrov/library-api/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/arsbatyrov/library-api/actions/workflows/ci.yml)
-[![Security](https://github.com/arsbatyrov/library-api/actions/workflows/security.yml/badge.svg?branch=main)](https://github.com/arsbatyrov/library-api/actions/workflows/security.yml)
-[![Publish images](https://github.com/arsbatyrov/library-api/actions/workflows/publish.yml/badge.svg?branch=main)](https://github.com/arsbatyrov/library-api/actions/workflows/publish.yml)
+[![CI](https://github.com/arsbatyrov/endless-library/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/arsbatyrov/endless-library/actions/workflows/ci.yml)
+[![Security](https://github.com/arsbatyrov/endless-library/actions/workflows/security.yml/badge.svg?branch=main)](https://github.com/arsbatyrov/endless-library/actions/workflows/security.yml)
+[![Publish images](https://github.com/arsbatyrov/endless-library/actions/workflows/publish.yml/badge.svg?branch=main)](https://github.com/arsbatyrov/endless-library/actions/workflows/publish.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Учебный проект: REST API библиотеки (FastAPI + SQLAlchemy + PostgreSQL), на котором отрабатываем тестирование.
+Учебный проект Endless Library: библиотека с REST API (FastAPI + SQLAlchemy + PostgreSQL), сайтом (React) и
+инфраструктурой (Docker, Kubernetes), на котором отрабатываем тестирование на всех уровнях.
 
 ## Первый запуск
 
@@ -71,11 +72,11 @@ docker compose --profile full rm -sf api web migrate   # остановить и
 
 | Образ | Теги |
 |---|---|
-| `ghcr.io/arsbatyrov/library-api` | `latest`, `sha-<коммит>` (и `X.Y.Z` для тегов `vX.Y.Z`) |
-| `ghcr.io/arsbatyrov/library-web` | то же |
+| `ghcr.io/arsbatyrov/endless-library-api` | `latest`, `sha-<коммит>` (и `X.Y.Z` для тегов `vX.Y.Z`) |
+| `ghcr.io/arsbatyrov/endless-library-web` | то же |
 
 ```powershell
-docker pull ghcr.io/arsbatyrov/library-api:latest
+docker pull ghcr.io/arsbatyrov/endless-library-api:latest
 ```
 
 Образы собираются из тех же `Dockerfile`, которые проверяются в CI. Для развёртывания лучше брать тег
