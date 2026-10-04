@@ -1,0 +1,22 @@
+# Вход в Grafana по имени grafana.localhost: http://grafana.localhost:8090
+# Браузеры сами переводят любое имя *.localhost в 127.0.0.1, поэтому записи в hosts и port-forward не нужны.
+# Правило привязано к имени (host): запросы к другим именам по-прежнему идут в приложение (см. k8s/ingress/ingress.yaml).
+# Просмотр без входа; для правок: пользователь admin, пароль в Secret grafana-admin (см. комментарий в grafana.yaml).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: grafana.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000

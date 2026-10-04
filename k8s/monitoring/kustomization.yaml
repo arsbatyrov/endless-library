@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - prometheus.yaml
   - grafana.yaml
+  - grafana-ingress.yaml
 # ConfigMap собираются из обычных файлов: их удобно читать и править как файлы, а kustomize добавляет к имени
 # хеш содержимого, поэтому изменение настроек само перезапускает нужный под.
 configMapGenerator:
