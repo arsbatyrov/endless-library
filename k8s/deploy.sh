@@ -68,7 +68,7 @@ k -n monitoring rollout status deployment/grafana --timeout=180s
 # Ждём, пока приложение реально ответит через вход, чтобы тесты после деплоя не попали в этот промежуток.
 echo "Ожидание ответа через Ingress..."
 for _ in $(seq 1 60); do
-  if curl -fsS -o /dev/null http://127.0.0.1:8090/api/ready; then
+  if curl -fsS -o /dev/null http://127.0.0.1:8080/api/ready; then
     ready=1
     break
   fi
@@ -80,6 +80,6 @@ if [ -z "${ready:-}" ]; then
 fi
 
 echo
-echo "Готово. Интерфейс: http://127.0.0.1:8090   API: http://127.0.0.1:8090/api/health"
-echo "Grafana (дашборд Library API): http://grafana.localhost:8090"
+echo "Готово. Интерфейс: http://127.0.0.1:8080   API: http://127.0.0.1:8080/api/health"
+echo "Grafana (дашборд Library API): http://grafana.localhost:8080"
 echo "Prometheus: kubectl --context $CONTEXT -n monitoring port-forward svc/prometheus 9090:9090  ->  http://127.0.0.1:9090"

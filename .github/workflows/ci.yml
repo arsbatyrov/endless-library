@@ -321,14 +321,14 @@ jobs:
       - name: Smoke test through nginx
         run: |
           for i in $(seq 1 30); do
-            curl -fsS http://127.0.0.1:8080/api/health && break
+            curl -fsS http://127.0.0.1:8081/api/health && break
             sleep 2
           done
           echo
-          curl -fsS http://127.0.0.1:8080/api/health | grep -q '"status":"ok"'
-          curl -fsS http://127.0.0.1:8080/ | grep -q 'id="root"'
-          test "$(curl -fsS http://127.0.0.1:8080/api/books)" = "[]"
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/books/999)" = "404"
+          curl -fsS http://127.0.0.1:8081/api/health | grep -q '"status":"ok"'
+          curl -fsS http://127.0.0.1:8081/ | grep -q 'id="root"'
+          test "$(curl -fsS http://127.0.0.1:8081/api/books)" = "[]"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/api/books/999)" = "404"
           docker compose --profile full exec -T api id -u | grep -qx 10001
 
       - name: Show container logs on failure

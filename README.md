@@ -53,7 +53,7 @@ npm run build        # проверка типов и сборка
 Приложение целиком (API, фронтенд, миграции) собирается в образы и запускается через профиль `full`:
 
 ```powershell
-docker compose --profile full up -d --build   # http://127.0.0.1:8080
+docker compose --profile full up -d --build   # http://127.0.0.1:8081
 docker compose --profile full rm -sf api web migrate   # остановить и убрать только приложение (база остаётся)
 ```
 
@@ -89,14 +89,14 @@ docker pull ghcr.io/arsbatyrov/library-api:latest
 ```bash
 kind create cluster --config k8s/kind-config.yaml   # один раз: кластер library
 bash k8s/deploy.sh                                   # сборка образов, загрузка в кластер, развёртывание
-# Интерфейс: http://127.0.0.1:8090   API: http://127.0.0.1:8090/api/health
+# Интерфейс: http://127.0.0.1:8080   API: http://127.0.0.1:8080/api/health
 pytest tests/smoke -m smoke --no-cov                 # дымовые тесты и проверки устойчивости
 kind delete cluster --name library                   # убрать всё
 ```
 
 | Файл | Что это |
 |---|---|
-| `k8s/kind-config.yaml` | Кластер: образ узла v1.34.0, вход на порт 8090 вашего компьютера |
+| `k8s/kind-config.yaml` | Кластер: образ узла v1.34.0, вход на порт 8080 вашего компьютера |
 | `k8s/base/` | Namespace, ConfigMap, база (StatefulSet с постоянным томом), API и web (Deployment, 2 реплики, пробы) |
 | `k8s/migrate-job.yaml` | Job с миграциями (`alembic upgrade head`), новый при каждом деплое |
 | `k8s/ingress/` | Входной контроллер Traefik и правило Ingress |
@@ -134,7 +134,7 @@ docker compose up -d redis                     # Redis на 127.0.0.1:6379
 - **Prometheus и Grafana** разворачиваются в кластере (`k8s/monitoring`, namespace `monitoring`) скриптом `k8s/deploy.sh`:
 
 ```bash
-# Grafana: http://grafana.localhost:8090 (дашборд «Library API», port-forward не нужен)
+# Grafana: http://grafana.localhost:8080 (дашборд «Library API», port-forward не нужен)
 kubectl --context kind-library -n monitoring port-forward svc/prometheus 9090:9090   # http://127.0.0.1:9090
 kubectl --context kind-library -n library logs deploy/api --tail=20                  # JSON-логи
 ```

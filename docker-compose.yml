@@ -80,8 +80,8 @@ services:
       api:
         condition: service_healthy
     ports:
-      # Адрес приложения: http://127.0.0.1:8080 (интерфейс), /api/... проксируется в API
-      - "127.0.0.1:8080:80"
+      # Адрес приложения: http://127.0.0.1:8081 (интерфейс), /api/... проксируется в API
+      - "127.0.0.1:8081:80"
     restart: unless-stopped
 
 volumes:
