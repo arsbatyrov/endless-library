@@ -1,23 +1,25 @@
 import { useEffect, useState } from "react";
 
-import { ApiError, deleteReader, getReaders } from "./api";
+import { actionErrorMsg, deleteReader, getReaders, loadErrorMsg } from "./api";
+import { type Msg, msg, useI18n } from "./i18n";
 import { ReaderForm } from "./ReaderForm";
 import type { Reader } from "./types";
 
 type State =
   | { status: "loading" }
-  | { status: "error"; message: string }
+  | { status: "error"; message: Msg }
   | { status: "ready"; readers: Reader[] };
 
 type FormMode = { kind: "closed" } | { kind: "create" } | { kind: "edit"; reader: Reader };
 
 // Экран устроен так же, как экран книг (см. BooksPage): загрузка / ошибка / данные, форма и удаление с подтверждением.
 export function ReadersPage() {
+  const { t, show } = useI18n();
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [mode, setMode] = useState<FormMode>({ kind: "closed" });
-  const [notice, setNotice] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Msg | null>(null);
+  const [actionError, setActionError] = useState<Msg | null>(null);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
 
   const reload = () => setAttempt((n) => n + 1);
@@ -32,17 +34,14 @@ export function ReadersPage() {
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
         }
-        const message = error instanceof Error ? error.message : "Неизвестная ошибка";
-        setState({ status: "error", message });
+        setState({ status: "error", message: loadErrorMsg(error) });
       });
 
     return () => controller.abort();
   }, [attempt]);
 
   function handleSaved(saved: Reader) {
-    setNotice(
-      mode.kind === "edit" ? `Изменения читателя «${saved.name}» сохранены` : `Читатель «${saved.name}» добавлен`,
-    );
+    setNotice(msg(mode.kind === "edit" ? "readers.saved" : "readers.added", { name: saved.name }));
     setActionError(null);
     setMode({ kind: "closed" });
     reload();
@@ -54,40 +53,40 @@ export function ReadersPage() {
     setActionError(null);
     try {
       await deleteReader(reader.id);
-      setNotice(`Читатель «${reader.name}» удалён`);
+      setNotice(msg("readers.deleted", { name: reader.name }));
     } catch (error) {
-      setActionError(error instanceof ApiError ? error.message : "Не удалось связаться с сервером");
+      setActionError(actionErrorMsg(error));
     }
     reload();
   }
 
   function renderList() {
     if (state.status === "loading") {
-      return <p data-testid="readers-loading">Загрузка…</p>;
+      return <p data-testid="readers-loading">{t("common.loading")}</p>;
     }
 
     if (state.status === "error") {
       return (
         <div role="alert" data-testid="readers-error">
-          <p>Не удалось загрузить читателей: {state.message}</p>
+          <p>{t("readers.loadError", { message: show(state.message) })}</p>
           <button type="button" data-testid="readers-retry" onClick={reload}>
-            Повторить
+            {t("common.retry")}
           </button>
         </div>
       );
     }
 
     if (state.readers.length === 0) {
-      return <p data-testid="readers-empty">Пока нет ни одного читателя</p>;
+      return <p data-testid="readers-empty">{t("readers.empty")}</p>;
     }
 
     return (
       <table data-testid="readers-table">
         <thead>
           <tr>
-            <th>Имя</th>
-            <th>Email</th>
-            <th>Действия</th>
+            <th>{t("readers.col.name")}</th>
+            <th>{t("readers.col.email")}</th>
+            <th>{t("common.actions")}</th>
           </tr>
         </thead>
         <tbody>
@@ -98,12 +97,12 @@ export function ReadersPage() {
               <td className="row-actions">
                 {confirmingId === reader.id ? (
                   <>
-                    <span>Удалить «{reader.name}»?</span>
+                    <span>{t("readers.deleteQuestion", { name: reader.name })}</span>
                     <button type="button" data-testid="reader-delete-confirm" onClick={() => handleDelete(reader)}>
-                      Да, удалить
+                      {t("common.confirmDelete")}
                     </button>
                     <button type="button" data-testid="reader-delete-cancel" onClick={() => setConfirmingId(null)}>
-                      Отмена
+                      {t("common.cancel")}
                     </button>
                   </>
                 ) : (
@@ -111,26 +110,26 @@ export function ReadersPage() {
                     <button
                       type="button"
                       data-testid="reader-edit"
-                      aria-label={`Изменить «${reader.name}»`}
+                      aria-label={t("readers.editAria", { name: reader.name })}
                       onClick={() => {
                         setNotice(null);
                         setActionError(null);
                         setMode({ kind: "edit", reader });
                       }}
                     >
-                      Изменить
+                      {t("common.edit")}
                     </button>
                     <button
                       type="button"
                       data-testid="reader-delete"
-                      aria-label={`Удалить «${reader.name}»`}
+                      aria-label={t("readers.deleteAria", { name: reader.name })}
                       onClick={() => {
                         setNotice(null);
                         setActionError(null);
                         setConfirmingId(reader.id);
                       }}
                     >
-                      Удалить
+                      {t("common.delete")}
                     </button>
                   </>
                 )}
@@ -144,7 +143,7 @@ export function ReadersPage() {
 
   return (
     <section>
-      <h2>Читатели</h2>
+      <h2>{t("readers.heading")}</h2>
 
       <div className="toolbar">
         <button
@@ -157,18 +156,18 @@ export function ReadersPage() {
             setMode({ kind: "create" });
           }}
         >
-          Добавить читателя
+          {t("readers.add")}
         </button>
       </div>
 
       {notice && (
         <p role="status" className="notice" data-testid="readers-notice">
-          {notice}
+          {show(notice)}
         </p>
       )}
       {actionError && (
         <p role="alert" className="form-error" data-testid="readers-action-error">
-          {actionError}
+          {show(actionError)}
         </p>
       )}
 

@@ -1,26 +1,31 @@
 import { useEffect, useState } from "react";
 
-import { ApiError, deleteBook, getBooks } from "./api";
+import { actionErrorMsg, deleteBook, getBooks, loadErrorMsg } from "./api";
 import { BookForm } from "./BookForm";
+import { type Msg, msg, useI18n } from "./i18n";
 import { PopularBooks } from "./PopularBooks";
 import type { Book } from "./types";
 
 // Загрузка списка: ровно одно из трёх состояний.
 type State =
   | { status: "loading" }
-  | { status: "error"; message: string }
+  | { status: "error"; message: Msg }
   | { status: "ready"; books: Book[] };
 
 // Форма закрыта, открыта для новой книги или для изменения существующей.
 type FormMode = { kind: "closed" } | { kind: "create" } | { kind: "edit"; book: Book };
 
 export function BooksPage() {
+  // t и show зависят от выбранного языка; useI18n перерисовывает компонент при его смене.
+  const { t, show } = useI18n();
   const [state, setState] = useState<State>({ status: "loading" });
   // Увеличиваем число, чтобы перечитать список (после действий и по кнопке «Повторить»).
   const [attempt, setAttempt] = useState(0);
   const [mode, setMode] = useState<FormMode>({ kind: "closed" });
-  const [notice, setNotice] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  // Сообщения хранятся как описания (ключ перевода + значения), а не как готовый текст:
+  // так при смене языка уже показанное сообщение тоже переводится.
+  const [notice, setNotice] = useState<Msg | null>(null);
+  const [actionError, setActionError] = useState<Msg | null>(null);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
 
   const reload = () => setAttempt((n) => n + 1);
@@ -37,15 +42,14 @@ export function BooksPage() {
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
         }
-        const message = error instanceof Error ? error.message : "Неизвестная ошибка";
-        setState({ status: "error", message });
+        setState({ status: "error", message: loadErrorMsg(error) });
       });
 
     return () => controller.abort();
   }, [attempt]);
 
   function handleSaved(saved: Book) {
-    setNotice(mode.kind === "edit" ? `Изменения книги «${saved.title}» сохранены` : `Книга «${saved.title}» добавлена`);
+    setNotice(msg(mode.kind === "edit" ? "books.saved" : "books.added", { title: saved.title }));
     setActionError(null);
     setMode({ kind: "closed" });
     reload();
@@ -57,9 +61,9 @@ export function BooksPage() {
     setActionError(null);
     try {
       await deleteBook(book.id);
-      setNotice(`Книга «${book.title}» удалена`);
+      setNotice(msg("books.deleted", { title: book.title }));
     } catch (error) {
-      setActionError(error instanceof ApiError ? error.message : "Не удалось связаться с сервером");
+      setActionError(actionErrorMsg(error));
     }
     // Перечитываем список в любом случае: например, книгу уже могли удалить в другой вкладке (404).
     reload();
@@ -67,33 +71,33 @@ export function BooksPage() {
 
   function renderList() {
     if (state.status === "loading") {
-      return <p data-testid="books-loading">Загрузка…</p>;
+      return <p data-testid="books-loading">{t("common.loading")}</p>;
     }
 
     if (state.status === "error") {
       return (
         <div role="alert" data-testid="books-error">
-          <p>Не удалось загрузить книги: {state.message}</p>
+          <p>{t("books.loadError", { message: show(state.message) })}</p>
           <button type="button" data-testid="books-retry" onClick={reload}>
-            Повторить
+            {t("common.retry")}
           </button>
         </div>
       );
     }
 
     if (state.books.length === 0) {
-      return <p data-testid="books-empty">Пока нет ни одной книги</p>;
+      return <p data-testid="books-empty">{t("books.empty")}</p>;
     }
 
     return (
       <table data-testid="books-table">
         <thead>
           <tr>
-            <th>Название</th>
-            <th>Автор</th>
-            <th>Год</th>
-            <th>В наличии</th>
-            <th>Действия</th>
+            <th>{t("books.col.title")}</th>
+            <th>{t("books.col.author")}</th>
+            <th>{t("books.col.year")}</th>
+            <th>{t("books.col.inStock")}</th>
+            <th>{t("common.actions")}</th>
           </tr>
         </thead>
         <tbody>
@@ -106,12 +110,12 @@ export function BooksPage() {
               <td className="row-actions">
                 {confirmingId === book.id ? (
                   <>
-                    <span>Удалить «{book.title}»?</span>
+                    <span>{t("books.deleteQuestion", { title: book.title })}</span>
                     <button type="button" data-testid="book-delete-confirm" onClick={() => handleDelete(book)}>
-                      Да, удалить
+                      {t("common.confirmDelete")}
                     </button>
                     <button type="button" data-testid="book-delete-cancel" onClick={() => setConfirmingId(null)}>
-                      Отмена
+                      {t("common.cancel")}
                     </button>
                   </>
                 ) : (
@@ -119,26 +123,26 @@ export function BooksPage() {
                     <button
                       type="button"
                       data-testid="book-edit"
-                      aria-label={`Изменить «${book.title}»`}
+                      aria-label={t("books.editAria", { title: book.title })}
                       onClick={() => {
                         setNotice(null);
                         setActionError(null);
                         setMode({ kind: "edit", book });
                       }}
                     >
-                      Изменить
+                      {t("common.edit")}
                     </button>
                     <button
                       type="button"
                       data-testid="book-delete"
-                      aria-label={`Удалить «${book.title}»`}
+                      aria-label={t("books.deleteAria", { title: book.title })}
                       onClick={() => {
                         setNotice(null);
                         setActionError(null);
                         setConfirmingId(book.id);
                       }}
                     >
-                      Удалить
+                      {t("common.delete")}
                     </button>
                   </>
                 )}
@@ -152,7 +156,7 @@ export function BooksPage() {
 
   return (
     <section>
-      <h2>Книги</h2>
+      <h2>{t("books.heading")}</h2>
 
       <div className="toolbar">
         <button
@@ -165,18 +169,18 @@ export function BooksPage() {
             setMode({ kind: "create" });
           }}
         >
-          Добавить книгу
+          {t("books.add")}
         </button>
       </div>
 
       {notice && (
         <p role="status" className="notice" data-testid="books-notice">
-          {notice}
+          {show(notice)}
         </p>
       )}
       {actionError && (
         <p role="alert" className="form-error" data-testid="books-action-error">
-          {actionError}
+          {show(actionError)}
         </p>
       )}
 

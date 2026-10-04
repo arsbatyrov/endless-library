@@ -22,6 +22,17 @@ class App:
         """Вкладка по имени раздела: books, readers или loans."""
         return self.page.get_by_test_id(f"tab-{name}")
 
+    def locale_button(self, code: str) -> Locator:
+        """Кнопка выбора языка: ru или en."""
+        return self.page.get_by_test_id(f"locale-{code}")
+
+    def set_locale(self, code: str) -> None:
+        self.locale_button(code).click()
+
+    @property
+    def heading(self) -> Locator:
+        return self.page.get_by_role("heading", level=1)
+
     def go_to_books(self) -> BooksPage:
         self.tab("books").click()
         return self.books
