@@ -48,10 +48,24 @@ def list_users(db: Session, actor: User) -> list[User]:
 
 
 def create_user(db: Session, actor: User, data: UserCreate) -> User:
-    # Order of answers: 403 (role), 422 (shape of the account), 404 (card), 409 (taken). The role check comes first
-    # so that a librarian cannot use the other answers to probe cards or logins.
+    # The role check comes first so that a librarian cannot use the other answers to probe cards or logins.
     if not _may_manage(actor, data.role):
         raise PermissionDeniedError(FORBIDDEN_FOR_ROLE)
+    return create_account(db, data)
+
+
+def username_exists(db: Session, username: str) -> bool:
+    return (
+        db.scalar(select(User.id).where(func.lower(User.username) == username.lower())) is not None
+    )
+
+
+def create_account(db: Session, data: UserCreate) -> User:
+    """Create an account, applying every rule of the account itself but NOT who is allowed to ask for it.
+
+    The caller must have done that check: the API checks the role of the signed-in user, the command line is run by
+    whoever controls the server. Order of answers: 422 (shape of the account), 404 (card), 409 (taken).
+    """
     if data.role == "reader" and data.reader_id is None:
         raise UnprocessableError("reader_id", "A reader account must be linked to a reader card")
     if data.role != "reader" and data.reader_id is not None:
@@ -63,10 +77,7 @@ def create_user(db: Session, actor: User, data: UserCreate) -> User:
             raise NotFoundError("Reader not found")
         if db.scalar(select(User.id).where(User.reader_id == data.reader_id)) is not None:
             raise BusinessRuleError("This reader card already has an account")
-    if (
-        db.scalar(select(User.id).where(func.lower(User.username) == data.username.lower()))
-        is not None
-    ):
+    if username_exists(db, data.username):
         raise BusinessRuleError("This login is already taken")
 
     user = User(

@@ -113,6 +113,7 @@ class PasswordChangeRequest(BaseModel):
     new_password: str = Field(max_length=128)
 
 
+Username = Annotated[str, Field(min_length=1, max_length=64, pattern=NO_NUL)]
 Role = Literal["reader", "librarian", "admin"]
 
 
@@ -121,7 +122,7 @@ class UserCreate(BaseModel):
 
     model_config = ConfigDict(strict=True)
 
-    username: str = Field(min_length=1, max_length=64, pattern=NO_NUL)
+    username: Username
     password: str = Field(min_length=8, max_length=128)
     role: Role
     reader_id: EntityId | None = None  # required for role=reader, forbidden for the others
