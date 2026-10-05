@@ -149,14 +149,14 @@ def _seed_demo(db, environ) -> int:
     except (DemoError, UnprocessableError, NotFoundError, BusinessRuleError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
+    # No password is printed, not even these public ones: a command must never write a password to a terminal or a
+    # log. The logins and the place where the passwords are written down are enough.
     print(
-        "DEMO ACCOUNTS are ready. INSECURE: the passwords are public, use them on a local machine only."
+        "DEMO ACCOUNTS are ready. INSECURE: their passwords are public, use them on a local machine only."
     )
     for account in accounts:
-        print(f"  {account.username} / {account.password}   ({account.role})")
-    # one line per account for scripts (the deploy script reads the administrator's password from here)
-    for account in accounts:
-        print(f"demo-login: {account.username} {account.password} {account.role}")
+        print(f"  {account.username}   ({account.role})")
+    print("The passwords are in the README, section 'Demo access (local machine only)'.")
     return 0
 
 

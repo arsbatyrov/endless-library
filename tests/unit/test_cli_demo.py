@@ -314,15 +314,17 @@ def test_an_existing_account_with_another_role_is_refused_not_silently_changed(r
 def test_the_output_lists_the_public_logins_and_warns(run, db):
     _, out, _ = run("seed-demo", environ=ENABLED)
 
-    assert "INSECURE" in out and "local" in out.lower()
+    assert "INSECURE" in out and "local" in out.lower() and "README" in out
     for account in demo.DEMO_ACCOUNTS:
-        assert f"{account.username} / {account.password}" in out
+        assert f"{account.username}   ({account.role})" in out
 
 
-def test_the_output_has_a_machine_readable_line_for_the_deploy_script(run, db):
-    _, out, _ = run("seed-demo", environ=ENABLED)
+def test_the_output_never_contains_a_password(run, db):
+    _, out, err = run("seed-demo", environ=ENABLED)
 
-    assert "demo-login: admin admin12345 admin" in out.splitlines()
+    for account in demo.DEMO_ACCOUNTS:
+        assert account.password not in out + err
+    assert "demo-login" not in out
 
 
 def test_the_output_never_contains_a_hash(run, db):

@@ -69,8 +69,10 @@ def test_the_demo_reader_opens_their_own_card_and_not_another(web):
     assert other.status_code == 403
 
 
-def test_the_secret_follows_the_demo_administrator(web):
-    assert cluster_secret("endless-library-admin", "password") == "admin12345"
+def test_the_secret_holds_a_note_not_a_password(web):
+    note = cluster_secret("endless-library-admin", "password")
+
+    assert note.startswith("demo-mode-") and "admin12345" not in note
 
 
 def test_the_api_warns_at_startup_that_demo_accounts_are_enabled():

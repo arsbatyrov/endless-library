@@ -169,7 +169,7 @@ $env:DEMO_ACCOUNTS = "true"
 `seed-demo` refuses to run unless `DEMO_ACCOUNTS=true` (only the word `true`), is safe to repeat (it resets the demo
 passwords and reactivates the accounts, creating nothing twice), refuses to touch an existing account that has the demo
 login but another role, and ends the sessions of the accounts it resets. Without `DEMO=1` a deploy creates nothing and
-removes the API's demo flag. **The accounts stay** after you stop using the flag: to go back to a secure setup, change the
+removes the API's demo flag. The command prints only the logins (a command never writes a password to a terminal or a log), and after `DEMO=1` the Secret `endless-library-admin` holds a note instead of a random password. **The accounts stay** after you stop using the flag: to go back to a secure setup, change the
 passwords or disable the accounts (Users page), for example:
 
 ```powershell

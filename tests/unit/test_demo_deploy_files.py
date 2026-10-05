@@ -58,8 +58,18 @@ def test_no_demo_password_is_written_in_the_script():
         )
 
 
-def test_the_script_reads_the_demo_administrator_password_from_the_command_output():
-    assert "demo-login:" in DEPLOY and '$2 == "admin"' in DEPLOY
+def test_the_script_never_reads_or_prints_a_password_in_demo_mode():
+    block = demo_block()
+
+    assert "demo-login" not in DEPLOY and "awk" not in block
+    assert "admin_password" not in block and "shown_password" not in block
+
+
+def test_the_secret_holds_a_note_not_the_password_in_demo_mode():
+    block = demo_block()
+
+    assert 'demo_note="demo-mode-' in block
+    assert "$demo_note" in block
 
 
 def test_the_secret_is_patched_to_follow_the_demo_administrator_only_in_demo_mode():
