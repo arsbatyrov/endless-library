@@ -24,7 +24,7 @@ import os
 import pytest
 import schemathesis
 from hypothesis import HealthCheck, settings
-from schemathesis.specs.openapi.checks import allow_header_conformance
+from schemathesis.specs.openapi.checks import allow_header_conformance, positive_data_acceptance
 from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
 
@@ -101,4 +101,10 @@ def test_api_conforms_to_its_openapi_contract(case):
     # Одно осознанное исключение: у ответа 405 заголовок Allow перечисляет не все методы адреса.
     # Starlette регистрирует по одному маршруту на метод и в Allow попадает только первый подходящий.
     # Это ограничение фреймворка, на клиентов оно не влияет.
-    case.call_and_validate(excluded_checks=[allow_header_conformance])
+    excluded = [allow_header_conformance]
+    # Second deliberate exception: account creation and update have rules between fields that JSON Schema cannot
+    # express (a reader account needs a reader card and staff must not have one; the role of a reader account cannot
+    # change). A request can be valid by schema and still get a documented 422 from such a rule.
+    if (case.method, case.operation.path) in {("POST", "/users"), ("PATCH", "/users/{user_id}")}:
+        excluded.append(positive_data_acceptance)
+    case.call_and_validate(excluded_checks=excluded)

@@ -16,9 +16,14 @@ from app.database import get_db
 from app.logging_config import new_request_id, request_id_var, setup_logging
 from app.metrics import HTTP_DURATION, HTTP_REQUESTS, UNMEASURED_PATHS
 from app.openapi_responses import NOT_READY
-from app.routers import auth, books, loans, readers
+from app.routers import auth, books, loans, readers, users
 from app.schemas import StatusResponse
-from app.services.errors import BusinessRuleError, NotFoundError
+from app.services.errors import (
+    BusinessRuleError,
+    NotFoundError,
+    PermissionDeniedError,
+    UnprocessableError,
+)
 
 # Fail fast: without a strong JWT secret the application must not start (there is no fallback value).
 load_jwt_secret()
@@ -39,6 +44,7 @@ access_logger = logging.getLogger("endless_library.access")
 # Напрямую (порт 8000, без nginx) переменная не задаётся: префикса нет.
 app = FastAPI(title="Endless Library API", root_path=os.getenv("API_ROOT_PATH", ""))
 app.include_router(auth.router)
+app.include_router(users.router)
 app.include_router(books.router)
 app.include_router(readers.router)
 app.include_router(loans.router)
@@ -79,11 +85,12 @@ async def observe_requests(request: Request, call_next):
 
 
 # By default a 422 error repeats the rejected input. For the sign-in form that would copy the password into the
-# response (and into any log that records responses), so the input is left out for the /auth endpoints.
+# response (and into any log that records responses), so the input is left out for the /auth and /users endpoints
+# (both carry passwords in their bodies).
 @app.exception_handler(RequestValidationError)
 async def validation_error_handler(request: Request, exc: RequestValidationError):
     errors = exc.errors()
-    if "/auth/" in request.url.path:
+    if "/auth/" in request.url.path or "/users" in request.url.path:
         errors = [
             {key: value for key, value in error.items() if key != "input"} for error in errors
         ]
@@ -94,6 +101,18 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
 @app.exception_handler(NotFoundError)
 async def not_found_handler(request: Request, exc: NotFoundError):
     return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+
+@app.exception_handler(PermissionDeniedError)
+async def permission_denied_handler(request: Request, exc: PermissionDeniedError):
+    return JSONResponse(status_code=403, content={"detail": str(exc)})
+
+
+@app.exception_handler(UnprocessableError)
+async def unprocessable_handler(request: Request, exc: UnprocessableError):
+    # The same shape as request-validation errors, so clients handle one 422 format. The input is never echoed.
+    error = {"type": "value_error", "loc": ["body", exc.field], "msg": str(exc)}
+    return JSONResponse(status_code=422, content={"detail": [error]})
 
 
 @app.exception_handler(BusinessRuleError)
