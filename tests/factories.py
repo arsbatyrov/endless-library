@@ -6,7 +6,7 @@
 
 from itertools import count
 
-from app.models import Book, Reader
+from app.models import Book, Reader, User
 
 _counter = count(1)
 
@@ -24,3 +24,21 @@ def make_reader(db, name: str = "Test reader") -> Reader:
     db.add(reader)
     db.commit()
     return reader
+
+
+def make_user(
+    db, role: str = "admin", username: str | None = None, reader=None, active: bool = True
+) -> User:
+    """Account for tests. The password hash is a placeholder: hashing is not part of the data-model tests."""
+    if role == "reader" and reader is None:
+        reader = make_reader(db)
+    user = User(
+        username=username or f"user{next(_counter)}",
+        password_hash="not-a-real-hash",
+        role=role,
+        reader_id=reader.id if reader is not None else None,
+        is_active=active,
+    )
+    db.add(user)
+    db.commit()
+    return user
