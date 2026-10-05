@@ -3,6 +3,8 @@ import os
 import time
 
 from fastapi import Depends, FastAPI, Request, Response
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import text
@@ -14,7 +16,7 @@ from app.database import get_db
 from app.logging_config import new_request_id, request_id_var, setup_logging
 from app.metrics import HTTP_DURATION, HTTP_REQUESTS, UNMEASURED_PATHS
 from app.openapi_responses import NOT_READY
-from app.routers import books, loans, readers
+from app.routers import auth, books, loans, readers
 from app.schemas import StatusResponse
 from app.services.errors import BusinessRuleError, NotFoundError
 
@@ -30,6 +32,7 @@ access_logger = logging.getLogger("endless_library.access")
 # иначе её запрос попадёт не в API (а в страницу сайта) и Swagger покажет «Unable to render this definition».
 # Напрямую (порт 8000, без nginx) переменная не задаётся: префикса нет.
 app = FastAPI(title="Endless Library API", root_path=os.getenv("API_ROOT_PATH", ""))
+app.include_router(auth.router)
 app.include_router(books.router)
 app.include_router(readers.router)
 app.include_router(loans.router)
@@ -67,6 +70,18 @@ async def observe_requests(request: Request, call_next):
                 },
             )
         request_id_var.reset(token)
+
+
+# By default a 422 error repeats the rejected input. For the sign-in form that would copy the password into the
+# response (and into any log that records responses), so the input is left out for the /auth endpoints.
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    if "/auth/" in request.url.path:
+        errors = [
+            {key: value for key, value in error.items() if key != "input"} for error in errors
+        ]
+    return JSONResponse(status_code=422, content={"detail": jsonable_encoder(errors)})
 
 
 # Сервисы не знают про HTTP: их исключения превращаем в ответы здесь.

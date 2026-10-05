@@ -80,6 +80,21 @@ class PopularBook(BaseModel):
     loans: int
 
 
+class LoginRequest(BaseModel):
+    """Credentials. Strict types and length limits: an overlong password must never reach the (expensive) hashing."""
+
+    model_config = ConfigDict(strict=True)
+
+    username: str = Field(min_length=1, max_length=64, pattern=NO_NUL)
+    password: str = Field(min_length=1, max_length=128)
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int  # seconds until the access token expires
+
+
 class ReaderCreate(BaseModel):
     model_config = ConfigDict(strict=True)
 
