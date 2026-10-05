@@ -78,10 +78,13 @@ The site shows only what the role allows (the server still checks everything and
 - The code: `roles.ts` (the matrix), `section.ts` (the address), `MyLoansPage.tsx`, `UsersPage.tsx`.
 
 **Managing accounts on the site.** The admin works in *Users*: a table (login, role, reader card, status, last
-sign-in) with **Create user**, **Disable / Enable** and **Reset password** per account. A librarian works in *Readers*:
+sign-in) with **Create user**, **Disable / Enable**, **Change role** and **Reset password** per account. A librarian works in *Readers*:
 a card without an account has **Create account** (only the role *reader* is offered, the card is fixed), a card with
 one shows the login and the status with the same Disable/Enable and Reset password buttons (a librarian never sees
 staff accounts). Disabling asks for confirmation (it ends the account's sessions); enabling and creating do not.
+**Change role** (admin only, also on the Readers page) offers the three roles with the current one preselected; for the
+reader role it asks for a free reader card, and leaving the reader role warns that the link to the card is removed. An
+admin who changes their own role sees the admin screens disappear at once.
 Errors from the server stand under the field they belong to as the server wrote them (a password shorter than 8
 characters, a taken login, a reader without a card), the last active admin cannot be disabled (the server's message is
 shown), and success messages follow the interface language. The code: `AccountForm.tsx`, `AccountActions.tsx`,
@@ -157,12 +160,14 @@ Books, readers and loans demand a login (`Authorization: Bearer <access token>`)
 | `reader` | read the catalogue: `GET /books`, `GET /books/{id}`, `GET /books/popular`; their own reader card and its active loans: `GET /readers/{id}` and `GET /readers/{id}/loans` (another card gives `403`, whether or not it exists; creating, changing or listing readers stays staff-only, also for their own card) |
 | `librarian`, `admin` | everything on books, readers and loans |
 | `librarian` | additionally: create, list, disable/enable and reset the password of **reader** accounts (`/users`) |
-| `admin` | additionally: all of that for every account, and change the role between librarian and admin |
+| `admin` | additionally: all of that for every account, and change the role of any account to **any role** (reader, librarian, admin) |
 
 User management (`/users`: create, list, `PATCH` to disable/enable or change a role, `reset-password`) is for staff only
-and **always** needs a login (the temporary switch below does not open it). The system never loses its last active
-admin (`409`), a reader account needs a reader card and keeps its role, and disabling an account or resetting its
-password ends all its sessions.
+and always needs a login. The system never loses its last active admin (`409`). A reader account is tied to a reader card:
+becoming a reader needs a free card (`reader_id` in the `PATCH`: `422` if missing, `404` if the card does not exist, `409`
+if it already has an account), leaving the reader role removes the link (the card itself stays). A librarian may not send a
+`role` or a `reader_id` at all. A role change is immediate (the role is read from the database on every request) and does
+not end the account's sessions. Disabling an account or resetting its password ends all its sessions.
 
 No or a bad token gives `401` (with `WWW-Authenticate: Bearer`), a role that is not allowed gives `403`. `/health`,
 `/ready`, `/docs` and `/openapi.json` stay open. A disabled or demoted user is refused at once, because the role and

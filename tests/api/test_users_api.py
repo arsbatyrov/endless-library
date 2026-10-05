@@ -389,15 +389,6 @@ def test_role_change_takes_effect_at_once(client, db, admin, librarian):
     assert client.post("/users", json=new_account(), headers=headers).status_code == 201
 
 
-@pytest.mark.parametrize("role", ["reader", "librarian", "admin"])
-def test_role_of_a_reader_account_cannot_change(client, db, admin, reader_account, role):
-    response = client.patch(f"/users/{reader_account.id}", json={"role": role}, headers=auth(admin))
-
-    assert response.status_code == 422
-    db.expire_all()
-    assert reader_account.role == "reader"
-
-
 def test_staff_cannot_become_a_reader(client, db, admin, librarian):
     response = client.patch(f"/users/{librarian.id}", json={"role": "reader"}, headers=auth(admin))
 

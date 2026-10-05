@@ -121,6 +121,15 @@ export function setAccountActive(id: number, active: boolean): Promise<Account> 
   return request<Account>(`/api/users/${id}`, jsonInit("PATCH", { is_active: active }));
 }
 
+/** Сменить роль учётной записи (только админ). Для роли «читатель» нужна свободная карточка читателя. */
+export function changeAccountRole(id: number, role: Account["role"], readerId?: number): Promise<Account> {
+  const body: { role: Account["role"]; reader_id?: number } = { role };
+  if (readerId !== undefined) {
+    body.reader_id = readerId;
+  }
+  return request<Account>(`/api/users/${id}`, jsonInit("PATCH", body));
+}
+
 /** Задать новый пароль учётной записи; все её сеансы завершаются. */
 export function resetAccountPassword(id: number, newPassword: string): Promise<void> {
   return request<void>(`/api/users/${id}/reset-password`, jsonInit("POST", { new_password: newPassword }));
