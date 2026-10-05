@@ -29,6 +29,9 @@ spec:
           env:
             - name: DATABASE_URL
               valueFrom: {secretKeyRef: {name: endless-library-db, key: DATABASE_URL}}
+            # Signs login tokens. Required: the API refuses to start without it. Created by deploy.sh.
+            - name: JWT_SECRET
+              valueFrom: {secretKeyRef: {name: endless-library-jwt, key: JWT_SECRET}}
             # Снаружи API виден под /api (nginx в web отрезает префикс): нужно странице документации /api/docs.
             - name: API_ROOT_PATH
               value: /api

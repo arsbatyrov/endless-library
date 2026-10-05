@@ -60,6 +60,9 @@ services:
       REDIS_URL: redis://redis:6379/0
       # снаружи API виден под /api (nginx отрезает префикс): нужно для страницы документации
       API_ROOT_PATH: /api
+      # Required by the API (it refuses to start without a strong secret). An empty default here lets
+      # `docker compose up -d db redis` work without it; the API then stops with a clear message.
+      JWT_SECRET: ${JWT_SECRET:-}
     depends_on:
       db:
         condition: service_healthy

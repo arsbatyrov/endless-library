@@ -31,6 +31,13 @@ if ! k -n endless-library get secret endless-library-db >/dev/null 2>&1; then
     --from-literal=DATABASE_URL="postgresql+psycopg://library:${password}@db:5432/library"
 fi
 
+# JWT secret (AUTH-003): random, created once, stored only in the cluster. The API refuses to start without it.
+# Replacing it later logs everybody out (all issued tokens become invalid).
+if ! k -n endless-library get secret endless-library-jwt >/dev/null 2>&1; then
+  k -n endless-library create secret generic endless-library-jwt \
+    --from-literal=JWT_SECRET="$(openssl rand -hex 32)"
+fi
+
 echo "== 3/7 База, API и web"
 k apply -k k8s/base
 k -n endless-library rollout status statefulset/db --timeout=180s

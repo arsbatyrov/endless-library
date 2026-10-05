@@ -312,7 +312,10 @@ jobs:
 
       # docker-compose.yml берёт имя, пароль и базу из .env; для проверки хватает шаблона.
       - name: Create .env from the template
-        run: cp .env.example .env
+        run: |
+          cp .env.example .env
+          # the API refuses to start without a strong JWT secret: generate one for this run
+          sed -i "s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/" .env
 
       - name: Build images and start the stack
         run: docker compose --profile full up -d --build
