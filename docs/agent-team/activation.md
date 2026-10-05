@@ -5,7 +5,7 @@ Claude Code loads them. Every step needs the owner's approval; nothing here is d
 
 ## Before you activate: readiness checklist
 
-- [ ] The owner has reviewed and accepted [process/bug-triage.md](process/bug-triage.md) (severity and priority rules).
+- [ ] The owner has reviewed and accepted [process/bug-triage.md](process/bug-triage.md) (bug priority rules: Critical, High, Mid, Low).
 - [ ] The owner has reviewed the role prompts in [agents/](agents) and the skills in [skills/](skills).
 - [ ] The first feature to try (the **pilot**) is chosen: small, described in words by the owner, NOT the authentication epic.
 - [ ] The owner accepts the cost: every role is a separate model run, so one ticket through the full pipeline uses noticeably
@@ -28,8 +28,8 @@ Claude Code loads them. Every step needs the owner's approval; nothing here is d
    `Idea, Analysis, Ready, Design, Test plan, In progress, In review, QA, Ready to merge, Done, Blocked`.
    (Board settings are an external change: the owner approves it; it can be done in the web UI or with the GraphQL
    `updateProjectV2Field` mutation, the same way the current options were set.)
-4. **Add the bug labels** if missing: `bug` (exists), plus nothing new is required: severity labels `sev:*` and priorities
-   `P1`-`P3` already exist.
+4. **Check the bug labels**: `bug` and the four priority labels `priority:critical`, `priority:high`, `priority:mid`,
+   `priority:low` exist (created together with the bug issue template, `.github/ISSUE_TEMPLATE/bug.yml`).
 5. **Review the merge permissions.** In the ticket workflow the orchestrator merges only after the owner's explicit "yes".
    The personal file `.claude/settings.local.json` (git-excluded) may keep `gh pr *` allowed; the skills themselves
    enforce the approval. If the owner wants a hard stop, move `gh pr merge *` from `allow` to `ask` (the owner approves the

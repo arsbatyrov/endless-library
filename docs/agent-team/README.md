@@ -12,7 +12,7 @@ one generalist session:
 |---|---|
 | **Analyst** | Interviews the product owner, extracts acceptance criteria, creates tickets after the owner confirms |
 | **Architect** | Designs the solution, writes ADRs, may create technical tickets |
-| **QA / SDET** | Proposes the test strategy (which test on which pyramid level, who writes it), writes and runs API and e2e tests, files bugs with severity and priority |
+| **QA / SDET** | Proposes the test strategy (which test on which pyramid level, who writes it), writes and runs API and e2e tests, files bugs with a priority (Critical, High, Mid, Low) |
 | **Developer** | Implements the ticket and its unit tests until they are green |
 | **Reviewer** | Independently reviews the Developer's code |
 | **Process manager (orchestrator)** | Runs the pipeline in the main Claude Code session (skills `/idea`, `/next`, `/status`, `/triage`), moves ticket statuses, asks the owner at every gate, merges only after the owner's explicit approval |
@@ -40,7 +40,7 @@ Owner gates (nothing moves on without an explicit yes): acceptance criteria, des
 | [agents/](agents) | The five role definitions (become `.claude/agents/`) |
 | [skills/](skills) | The orchestrator commands `/idea`, `/next`, `/status`, `/triage` (become `.claude/skills/`) |
 | [process/agent-workflow.md](process/agent-workflow.md) | Statuses, handoffs, comment formats, gates, escalation |
-| [process/bug-triage.md](process/bug-triage.md) | Bug severity and priority policy (draft for owner review) |
+| [process/bug-triage.md](process/bug-triage.md) | Bug priority policy: Critical, High, Mid, Low (draft for owner review) |
 | [adr/0000-template.md](adr/0000-template.md) | Architecture decision record template |
 
 ## Why it is stored here and not in `.claude/`
