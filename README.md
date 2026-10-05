@@ -354,7 +354,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-1088 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+1483 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 
@@ -371,15 +371,15 @@ pytest tests/smoke -m smoke --no-cov         # tests of the deployed cluster (af
 
 | Folder | Tests | Level | What it checks | Where it runs in CI |
 |---|---|---|---|---|
-| `tests/unit` | 217 | unit | service logic, fines, log format, password hashing and policy, JWT tokens, the login guard, the command line, deployment files | Tests |
-| `tests/api` | 531 | API (in memory) | status codes, format, errors, Redis cache, ranking, metrics, contract regressions | Tests |
+| `tests/unit` | 275 | unit | service logic, fines, log format, password hashing and policy, JWT tokens, the login guard, the command line, deployment files | Tests |
+| `tests/api` | 593 | API (in memory) | status codes, format, errors, Redis cache, ranking, metrics, contract regressions | Tests |
 | `tests/db` | 42 | database | the database's own constraints (uniqueness, foreign keys, account rules), recovery after dropped connections | Tests |
 | `tests/migrations` | 11 | migrations | apply from scratch, rollback, match with the models | Tests |
 | `tests/concurrency` | 2 | race conditions | simultaneous requests to the same data | Tests |
-| `tests/security` | 239 | security (negative) | forged and expired tokens, rights escalation, theft of a refresh token, cross-origin requests, indistinguishable sign-in failures, hostile input, secrets in responses and logs | Tests |
+| `tests/security` | 240 | security (negative) | forged and expired tokens, rights escalation, theft of a refresh token, cross-origin requests, indistinguishable sign-in failures, hostile input, secrets in responses and logs | Tests |
 | `tests/contract` | 48 | contract | Schemathesis against OpenAPI and the schema snapshot | Contract tests |
-| `tests/ui` | 205 | interface | scenarios in a real browser (Playwright), errors, network failures, signing in and out | UI tests |
-| `tests/smoke` | 32 | deployed system | Ingress, data all the way to the database, resilience (update without losses, database and Redis restart), Prometheus and Grafana | Kubernetes |
+| `tests/ui` | 227 | interface | scenarios in a real browser (Playwright), errors, network failures, signing in and out | UI tests |
+| `tests/smoke` | 45 | deployed system | Ingress, sign-in, rights, refresh and sign-out, demo access, data all the way to the database, resilience (update without losses, database and Redis restart), Prometheus and Grafana | Kubernetes |
 
 Other CI checks: linter and formatting (Lint), types and frontend build (Frontend), image build and a check through
 nginx (Docker images), dependency and image vulnerabilities (Security), code analysis (CodeQL). Code coverage of the
