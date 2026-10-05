@@ -1,0 +1,96 @@
+# Endless Library: project context for every agent
+
+This file is loaded by every agent (including subagents). Read it first. It describes the project, the rules and the
+commands. When a rule here conflicts with a request, stop and ask the owner.
+
+## What the project is
+
+Endless Library is a learning project: a library with a REST API (FastAPI + SQLAlchemy 2 + PostgreSQL), a React + Vite +
+TypeScript website, Redis cache, Docker and Kubernetes (kind), Prometheus and Grafana. Its main purpose is to practise and
+demonstrate testing on every level. The repository is **public**: https://github.com/arsbatyrov/endless-library
+
+## Language policy
+
+- Chat with the owner: **Russian**.
+- Documentation, tickets, bug reports, PR descriptions, ADRs, review comments: **English**.
+- New code comments: English. Existing Russian comments and docstrings are left as they are unless the ticket says otherwise.
+- User interface texts are bilingual (ru and en) in `frontend/src/i18n.ts`; both dictionaries must have every key.
+
+## Layout
+
+| Path | Contents |
+|---|---|
+| `app/` | FastAPI application (routers, services, models, schemas, cache, metrics, logging) |
+| `migrations/` | Alembic migrations (single chain; `alembic check` must be clean) |
+| `frontend/` | React website (`src/`), nginx config, Dockerfile |
+| `tests/unit`, `tests/api`, `tests/db`, `tests/migrations`, `tests/concurrency` | Backend tests (run by default) |
+| `tests/contract` | Schemathesis + OpenAPI snapshot (marker `contract`) |
+| `tests/ui` | Playwright UI tests (marker `ui`) |
+| `tests/smoke` | Tests of the deployed cluster (marker `smoke`) |
+| `k8s/` | kind config, manifests, ingress, monitoring, `deploy.sh` |
+| `docs/` | Documentation (this kit lives in `docs/agent-team/`) |
+
+## Commands (Windows, PowerShell; the virtual environment is `.venv`)
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest --no-cov -q            # default suite (unit, api, db, migrations, concurrency)
+.\.venv\Scripts\python.exe -m pytest tests/unit --no-cov -q  # one folder
+.\.venv\Scripts\python.exe -m pytest -m ui --no-cov -q       # UI tests (starts its own servers on 8100 and 5180)
+.\.venv\Scripts\python.exe -m pytest tests/contract -m contract --no-cov -q
+.\.venv\Scripts\python.exe -m pytest tests/smoke -m smoke --no-cov -q   # needs the cluster
+.\.venv\Scripts\ruff.exe check . ; .\.venv\Scripts\ruff.exe format .
+cd frontend ; npm run build                                  # type check and build
+bash k8s/deploy.sh                                           # (re)deploy to the local cluster (Git Bash)
+```
+
+The default `pytest` run needs PostgreSQL and Redis (`docker compose up -d db redis`) and enforces 95% coverage.
+Tests use the databases `library_test`, `library_e2e_test`, `library_migrations_test` and Redis database 15.
+
+## Environment facts
+
+| Thing | Value |
+|---|---|
+| The website (cluster) | http://127.0.0.1:8080 , API under `/api` , Swagger at `/api/docs` |
+| Grafana | http://grafana.localhost:8080 (dashboard "Endless Library") |
+| Cluster / context / namespace | `endless-library` / `kind-endless-library` / `endless-library` |
+| Docker Compose project | `endless-library` (containers `endless-library-db-1`, `endless-library-redis-1`) |
+| Dev servers of the owner | API 8000, Vite 5173: **never start your own servers there**; use 8765, 8100, 5180 |
+| Working database | `library` (the owner's data, 50 books): **never read-write it from tests or experiments** |
+| Compose data volume | `library_pgdata` (pinned by name; do not remove) |
+
+## Hard rules (never break)
+
+1. Do not touch the working database `library`, the owner's other containers, `.env`, or the `.claude/settings.local.json` file.
+2. No force-push, no pushes to `main`. Work on a branch: `feat/...`, `fix/...`, `docs/...`, `chore/...`.
+3. **Never merge a PR, close or create issues, change repository or project settings, create secrets, or deploy** without the
+   owner's explicit approval in the current session (the orchestrator skills define the exact gates).
+4. The repository is public: no secrets, tokens, passwords or personal data in code, tickets, logs, tests or test data.
+5. Packages and Docker images are installed by the owner. If a ticket needs a new dependency, say so and stop; do not work around a denied install.
+6. If acceptance criteria are unclear or contradictory, **stop and ask**; do not guess.
+
+## Conventions
+
+- Tests live next to their level (see Layout). Every test is linked to a requirement ID when the ticket has one. New tests
+  must be able to fail: before you finish, break the code on purpose once and confirm the test goes red (mutation check).
+- API changes update the OpenAPI snapshot deliberately: `UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m contract --no-cov`.
+- Server error messages (`detail` of 404/409/422 responses) are shown by the UI as they are and are not translated.
+- Frontend: every user-visible string goes through `i18n.ts`; elements that tests use have `data-testid`.
+- Python 3.12, ruff is the only linter/formatter; CI runs seven required checks (Lint, Tests, Frontend, UI tests, Docker images,
+  Contract tests, Kubernetes smoke tests). A PR is ready only when all are green.
+- Commit messages and PR descriptions follow the attribution instructions provided by the harness. PR descriptions are English.
+- Windows notes: PowerShell 5.1 has no `&&`; `.ps1` files must be ASCII-only; in Git Bash write `gh api` endpoints without a
+  leading slash; create files with the Write tool rather than long shell heredocs; always set connection timeouts.
+
+## Tickets and the board
+
+- Tickets are GitHub issues in this repository, created from `.github/ISSUE_TEMPLATE/feature.yml` (feature) and a bug
+  template (see `docs/agent-team/process/bug-triage.md` once active). Labels: type (`feature`, `bug`, `task`, `test`),
+  severity (`sev:critical|major|minor|trivial`), priority (`P1`-`P3`), area (`area:api|web|android|infra|ci`).
+- The project board "Endless Library" (https://github.com/users/arsbatyrov/projects/1) holds the ticket **Status**, which is
+  the handoff signal between roles. See `docs/agent-team/process/agent-workflow.md`.
+- Definition of Ready and Definition of Done are in the feature template. A ticket is not Ready without Given/When/Then criteria.
+
+## How to report
+
+Be brief and factual: what you did, what you verified (command and result), what is left, what you need from the owner.
+Never claim a test passed without running it. If a step failed or was skipped, say so.

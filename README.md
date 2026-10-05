@@ -236,6 +236,12 @@ UI test server logs: `test-results/ui-servers/`.
 - OS packages are upgraded during image builds (`apt-get upgrade` / `apk upgrade`), which closes already fixed
   vulnerabilities of the base image.
 
+## Agent team kit (not active)
+
+A prepared set of role definitions (analyst, architect, developer, QA, reviewer) and process documents for building the
+project with separate agents lives in [docs/agent-team/](docs/agent-team/README.md). It is stored as plain documentation
+and is **not active**; see [docs/agent-team/activation.md](docs/agent-team/activation.md) for how to switch it on.
+
 ## Code checks
 
 The same checks run in CI (GitHub Actions); you can run them locally before committing:
