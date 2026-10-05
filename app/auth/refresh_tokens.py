@@ -46,10 +46,13 @@ def _revoke_all(db: Session, user_id: int, now: datetime) -> None:
     )
 
 
-def revoke_all_refresh_tokens(db: Session, user_id: int, now: datetime | None = None) -> None:
-    """Sign the user out everywhere (after a password change). Commits."""
+def revoke_all_refresh_tokens(
+    db: Session, user_id: int, now: datetime | None = None, commit: bool = True
+) -> None:
+    """Sign the user out everywhere (password change or reset, account disabled). Commits unless told not to."""
     _revoke_all(db, user_id, now or datetime.now(UTC))
-    db.commit()
+    if commit:
+        db.commit()
 
 
 def rotate_refresh_token(

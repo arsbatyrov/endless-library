@@ -62,6 +62,7 @@ Login tokens (JWT) are signed with a secret that the application **requires at s
 - Docker Compose reads `JWT_SECRET` from `.env`. In Kubernetes `k8s/deploy.sh` generates a random value once and
   keeps it in the Secret `endless-library-jwt`.
 - Tests use a fixed test-only value that `tests/conftest.py` sets; a real secret is never used by tests.
+- Replacing the secret logs everybody out: every issued token becomes invalid.
 
 ### Roles and the temporary `AUTH_REQUIRED` switch
 
@@ -71,6 +72,13 @@ Books, readers and loans demand a login (`Authorization: Bearer <access token>`)
 |---|---|
 | `reader` | read the catalogue: `GET /books`, `GET /books/{id}`, `GET /books/popular`; the active loans of their own reader card: `GET /readers/{id}/loans` (another card gives `403`, whether or not it exists) |
 | `librarian`, `admin` | everything on books, readers and loans |
+| `librarian` | additionally: create, list, disable/enable and reset the password of **reader** accounts (`/users`) |
+| `admin` | additionally: all of that for every account, and change the role between librarian and admin |
+
+User management (`/users`: create, list, `PATCH` to disable/enable or change a role, `reset-password`) is for staff only
+and **always** needs a login (the temporary switch below does not open it). The system never loses its last active
+admin (`409`), a reader account needs a reader card and keeps its role, and disabling an account or resetting its
+password ends all its sessions.
 
 No or a bad token gives `401` (with `WWW-Authenticate: Bearer`), a role that is not allowed gives `403`. `/health`,
 `/ready`, `/docs` and `/openapi.json` stay open. A disabled or demoted user is refused at once, because the role and
@@ -80,7 +88,6 @@ the active flag are read from the database on every request.
 the UI tests set `AUTH_REQUIRED=false`, which keeps these endpoints open as before. The application's own default is
 `true` (protected); the value is validated at startup (a typo stops the application) and a switched-off start logs a
 `ROLE PROTECTION IS OFF` warning. The switch will be removed together with AUTH-013.
-- Replacing the secret logs everybody out: every issued token becomes invalid.
 
 ## Running in containers
 
@@ -203,7 +210,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-707 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+812 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 

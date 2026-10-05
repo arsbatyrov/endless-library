@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import Path
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
 # Столбцы id и счётчики в базе имеют тип integer (32 бита). Без верхней границы число побольше доходило бы до
 # SQL и давало 500 вместо понятной ошибки 422 (это нашёл Schemathesis).
@@ -111,6 +111,57 @@ class PasswordChangeRequest(BaseModel):
 
     current_password: str = Field(min_length=1, max_length=128)
     new_password: str = Field(max_length=128)
+
+
+Role = Literal["reader", "librarian", "admin"]
+
+
+class UserCreate(BaseModel):
+    """A new account. The password policy (length, not equal to the login) is checked by the service."""
+
+    model_config = ConfigDict(strict=True)
+
+    username: str = Field(min_length=1, max_length=64, pattern=NO_NUL)
+    password: str = Field(min_length=8, max_length=128)
+    role: Role
+    reader_id: EntityId | None = None  # required for role=reader, forbidden for the others
+
+
+class UserRead(BaseModel):
+    """An account as shown to staff. Never contains the password or its hash."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    role: Role
+    reader_id: int | None
+    is_active: bool
+    created_at: datetime
+    last_login_at: datetime | None
+
+
+class UserUpdate(BaseModel):
+    """Partial update: only the fields that are sent change. At least one is required; null is not a value."""
+
+    # minProperties tells API clients (and the contract tests) that an empty object is not a valid update.
+    model_config = ConfigDict(strict=True, json_schema_extra={"minProperties": 1})
+
+    # `= Field(default=None)` without `| None`: the field may be omitted, but an explicit null is refused.
+    is_active: bool = Field(default=None)
+    role: Role = Field(default=None)
+
+    @model_validator(mode="after")
+    def at_least_one_field(self):
+        if not self.model_fields_set:
+            raise ValueError("Send at least one of: is_active, role")
+        return self
+
+
+class PasswordReset(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 class ReaderCreate(BaseModel):

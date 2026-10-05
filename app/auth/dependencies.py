@@ -39,17 +39,18 @@ ALL_ROLES = ("reader", "librarian", "admin")
 STAFF_ROLES = ("librarian", "admin")
 
 
-def require_roles(*allowed: str):
+def require_roles(*allowed: str, enforce_always: bool = False):
     """Dependency factory: only the listed roles pass. No/bad token gives 401, another role gives 403.
 
-    While the temporary AUTH_REQUIRED switch is off (see app.auth.config.auth_required) everything passes.
+    While the temporary AUTH_REQUIRED switch is off (see app.auth.config.auth_required) everything passes, unless
+    `enforce_always` is set: endpoints that need to know WHO is calling (user management) can never be opened that way.
     """
 
     def dependency(
         credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
         db: Session = Depends(get_db),
     ) -> User | None:
-        if not auth_required():
+        if not enforce_always and not auth_required():
             return None
         user = _authenticate(credentials, db)
         if user.role not in allowed:
@@ -57,6 +58,10 @@ def require_roles(*allowed: str):
         return user
 
     return dependency
+
+
+# User management always needs a real signed-in staff member, whatever AUTH_REQUIRED says.
+require_staff = require_roles(*STAFF_ROLES, enforce_always=True)
 
 
 def require_staff_or_own_reader_card(
