@@ -24,7 +24,7 @@ router = APIRouter(
 )
 
 
-# Everything about readers is for librarians and admins, except the loans of a reader's OWN card.
+# Everything about readers is for librarians and admins, except that a reader may open their OWN card and its loans.
 staff_only = [Depends(require_roles(*STAFF_ROLES))]
 
 
@@ -69,7 +69,12 @@ def list_readers(db: Session = Depends(get_db)):
 
 
 @router.get(
-    "/{reader_id}", response_model=ReaderRead, responses={**NOT_FOUND}, dependencies=staff_only
+    "/{reader_id}",
+    response_model=ReaderRead,
+    responses={**NOT_FOUND},
+    dependencies=[
+        Depends(require_staff_or_own_reader_card)
+    ],  # staff: any card; a reader: their own (AUTH-019)
 )
 def get_reader(reader_id: PathId, db: Session = Depends(get_db)):
     return get_reader_or_404(reader_id, db)

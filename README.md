@@ -65,7 +65,7 @@ The site shows only what the role allows (the server still checks everything and
 
 | Role | Sections | In the catalogue |
 |---|---|---|
-| reader | Books (with the ranking), Loans (**only their own** books, read only) | read only: no add, edit or delete buttons |
+| reader | Books (with the ranking), Loans (**only their own** books, read only, with **their own card** above them: name and email) | read only: no add, edit or delete buttons |
 | librarian | Books, Readers, Loans (issue and return) | full |
 | admin | Books, Readers, Loans, **Users** (the list of accounts) | full |
 
@@ -154,7 +154,7 @@ Books, readers and loans demand a login (`Authorization: Bearer <access token>`)
 
 | Role | Allowed |
 |---|---|
-| `reader` | read the catalogue: `GET /books`, `GET /books/{id}`, `GET /books/popular`; the active loans of their own reader card: `GET /readers/{id}/loans` (another card gives `403`, whether or not it exists) |
+| `reader` | read the catalogue: `GET /books`, `GET /books/{id}`, `GET /books/popular`; their own reader card and its active loans: `GET /readers/{id}` and `GET /readers/{id}/loans` (another card gives `403`, whether or not it exists; creating, changing or listing readers stays staff-only, also for their own card) |
 | `librarian`, `admin` | everything on books, readers and loans |
 | `librarian` | additionally: create, list, disable/enable and reset the password of **reader** accounts (`/users`) |
 | `admin` | additionally: all of that for every account, and change the role between librarian and admin |

@@ -162,3 +162,23 @@ select {
 [data-testid="login-form"] {
   max-width: 420px;
 }
+
+.my-card {
+  margin-bottom: 20px;
+}
+
+.my-card dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.my-card dt {
+  color: #59636e;
+}
+
+.my-card dd {
+  margin: 0;
+  font-weight: 600;
+}

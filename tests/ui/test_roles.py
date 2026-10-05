@@ -503,3 +503,67 @@ def test_the_signed_in_user_is_still_shown_after_a_403(app, page, as_role, api):
 
     expect(page.get_by_test_id("current-user")).to_have_text(account["username"])
     expect(page.get_by_test_id("logout")).to_be_visible()
+
+
+# ---------- AUTH-019: the reader sees their own card ----------
+
+
+def test_the_reader_sees_their_own_card_above_the_loans(app, page, as_role, api):
+    card = as_role("reader")["reader_id"]
+    api.create_book(title="Дюна")
+
+    app.open()
+    app.tab("loans").click()
+
+    expect(page.get_by_test_id("my-card-name")).to_have_text("Читатель E2E")
+    expect(page.get_by_test_id("my-card-email")).to_contain_text("@example.com")
+    assert card
+
+
+def test_the_card_is_fetched_by_its_id_and_the_readers_list_is_never_requested(app, page, as_role):
+    card_id = as_role("reader")["reader_id"]
+    seen = record_requests(page)
+
+    app.open()
+    app.tab("loans").click()
+    expect(page.get_by_test_id("my-card-name")).to_be_visible()
+
+    assert f"/readers/{card_id}" in seen
+    assert "/readers" not in seen
+
+
+def test_the_card_block_is_translated(app, page, as_role):
+    as_role("reader")
+    app.open()
+    app.tab("loans").click()
+    expect(page.get_by_test_id("my-card")).to_contain_text("Моя карточка")
+
+    app.set_locale("en")
+
+    expect(page.get_by_test_id("my-card")).to_contain_text("My card")
+    expect(page.get_by_test_id("my-card")).to_contain_text("Name")
+
+
+def test_a_failing_card_request_shows_an_error_with_a_retry_and_keeps_the_loans(app, page, as_role):
+    card_id = as_role("reader")["reader_id"]
+    page.route(
+        f"**/api/readers/{card_id}",
+        lambda route: route.fulfill(status=500, json={"detail": "boom"}),
+    )
+    app.open()
+    app.tab("loans").click()
+
+    expect(page.get_by_test_id("my-card-error")).to_contain_text("boom")
+    expect(page.get_by_test_id("my-loans-empty")).to_be_visible()
+    page.unroute(f"**/api/readers/{card_id}")
+    page.get_by_test_id("my-card-retry").click()
+    expect(page.get_by_test_id("my-card-name")).to_be_visible()
+
+
+def test_staff_do_not_get_the_own_card_block_on_the_loans_page(app, page, as_role):
+    as_role("librarian")
+    app.open()
+
+    app.tab("loans").click()
+
+    expect(page.get_by_test_id("my-card")).to_have_count(0)

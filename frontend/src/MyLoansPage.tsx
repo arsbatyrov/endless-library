@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
 
-import { getBooks, getReaderLoans, loadErrorMsg } from "./api";
+import { getBooks, getReader, getReaderLoans, loadErrorMsg } from "./api";
 import { useSession } from "./auth";
 import { formatDate, isOverdue } from "./format";
 import { type Msg, useI18n } from "./i18n";
-import type { Book, Loan } from "./types";
+import type { Book, Loan, Reader } from "./types";
+
+// Собственная карточка читателя (имя и email). Грузится отдельно от выдач: сбой одного не прячет другое.
+type CardState =
+  | { status: "loading" }
+  | { status: "error"; message: Msg }
+  | { status: "ready"; reader: Reader };
 
 type State =
   | { status: "loading" }
@@ -18,6 +24,24 @@ export function MyLoansPage() {
   const readerId = session.status === "authenticated" ? session.user.reader_id : null;
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
+  const [card, setCard] = useState<CardState>({ status: "loading" });
+  const [cardAttempt, setCardAttempt] = useState(0);
+
+  useEffect(() => {
+    if (readerId === null) {
+      return;
+    }
+    const controller = new AbortController();
+    getReader(readerId, controller.signal)
+      .then((reader) => setCard({ status: "ready", reader }))
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        setCard({ status: "error", message: loadErrorMsg(error) });
+      });
+    return () => controller.abort();
+  }, [readerId, cardAttempt]);
 
   useEffect(() => {
     if (readerId === null) {
@@ -95,9 +119,35 @@ export function MyLoansPage() {
     );
   }
 
+  function renderCard() {
+    return (
+      <section className="my-card" data-testid="my-card" aria-labelledby="my-card-heading">
+        <h3 id="my-card-heading">{t("myCard.heading")}</h3>
+        {card.status === "loading" && <p data-testid="my-card-loading">{t("common.loading")}</p>}
+        {card.status === "error" && (
+          <div role="alert" data-testid="my-card-error">
+            <p>{t("myCard.loadError", { message: show(card.message) })}</p>
+            <button type="button" data-testid="my-card-retry" onClick={() => setCardAttempt((n) => n + 1)}>
+              {t("common.retry")}
+            </button>
+          </div>
+        )}
+        {card.status === "ready" && (
+          <dl>
+            <dt>{t("readers.col.name")}</dt>
+            <dd data-testid="my-card-name">{card.reader.name}</dd>
+            <dt>{t("readers.col.email")}</dt>
+            <dd data-testid="my-card-email">{card.reader.email}</dd>
+          </dl>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section>
       <h2>{t("loans.heading")}</h2>
+      {renderCard()}
       {renderBody()}
     </section>
   );
