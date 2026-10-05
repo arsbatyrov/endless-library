@@ -64,6 +64,33 @@ Login tokens (JWT) are signed with a secret that the application **requires at s
 - Tests use a fixed test-only value that `tests/conftest.py` sets; a real secret is never used by tests.
 - Replacing the secret logs everybody out: every issued token becomes invalid.
 
+### The first administrator and the command line
+
+There is no self-registration, so the first admin is created on the server:
+
+```powershell
+# password from an environment variable (or typed at a hidden prompt); it is NEVER a command-line argument
+$env:LIBRARY_USER_PASSWORD = "<a password of 8 to 128 characters>"
+.\.venv\Scripts\python.exe -m app.cli create-user --username admin --role admin
+docker compose --profile full exec -e LIBRARY_USER_PASSWORD api python -m app.cli create-user --username admin --role admin
+```
+
+`create-user` takes `--role admin|librarian|reader`, `--reader-id N` (required for `reader`) and `--skip-if-exists`
+(change nothing and succeed when the login exists, which makes it safe on every deploy). A repeated login is refused
+with a clear message. It applies the same rules as the API (password policy, unique login ignoring case) and never
+prints the password or its hash.
+
+**Kubernetes:** `k8s/deploy.sh` creates the admin automatically. The password is random, stored only in the Secret
+`endless-library-admin` and **shown once** at the end of the first deploy. A later deploy never overwrites the Secret
+or the admin (and never shows a password again). To read it later:
+
+```powershell
+kubectl --context kind-endless-library -n endless-library get secret endless-library-admin -o jsonpath='{.data.password}'
+# the value is base64: decode it (in Git Bash add  | base64 -d )
+```
+
+The JWT secret is a separate Secret (`endless-library-jwt`), also created once and never overwritten.
+
 ### Brute-force protection of the login
 
 Five failed logins in a row for one login (counted over 15 minutes, ignoring case) lock that login for 15 minutes: the
@@ -225,7 +252,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-880 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+934 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 

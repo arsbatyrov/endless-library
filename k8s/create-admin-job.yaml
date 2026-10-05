@@ -1,0 +1,35 @@
+# Job: one-off task "create the first administrator" (AUTH-012).
+# The password comes from the Secret endless-library-admin (created by deploy.sh with a random value, kept only in
+# the cluster); it is never a command-line argument. --skip-if-exists makes every deploy safe: an existing admin
+# is left exactly as it is (no password is overwritten).
+# generateName: every deploy creates a NEW Job (a finished Job cannot be changed or re-run); old ones are removed
+# after an hour. Created with `kubectl create -f` (not apply), see deploy.sh.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: create-admin-
+  namespace: endless-library
+spec:
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: create-admin
+          image: endless-library-api:local
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "app.cli", "create-user", "--username", "admin", "--role", "admin", "--skip-if-exists"]
+          env:
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: endless-library-db, key: DATABASE_URL}}
+            - name: LIBRARY_USER_PASSWORD
+              valueFrom: {secretKeyRef: {name: endless-library-admin, key: password}}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities: {drop: ["ALL"]}
