@@ -32,6 +32,9 @@ os.environ["DATABASE_URL"] = TEST_URL.render_as_string(hide_password=False)
 # Кэш по умолчанию ВЫКЛЮЧЕН во всех тестах (пустое значение перебивает REDIS_URL из .env): иначе тесты
 # читали бы и портили рабочий кэш и влияли друг на друга. Кэш включают только тесты с фикстурой redis_cache.
 os.environ["REDIS_URL"] = ""
+# The application refuses to start without a strong JWT secret (AUTH-003). Tests always use this fixed, public,
+# test-only value, never a real secret from .env or the environment; subprocesses (UI tests) inherit it.
+os.environ["JWT_SECRET"] = "test-only-secret-not-for-production-0123456789abcdef"
 REDIS_TEST_URL = os.environ.get("REDIS_TEST_URL", "redis://127.0.0.1:6379/15")
 
 # Импорты приложения только после подмены DATABASE_URL (поэтому E402).

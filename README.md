@@ -49,6 +49,21 @@ choice is made, the browser language is used (Russian or English, English otherw
 `frontend/src/i18n.ts` (`ru` and `en` dictionaries; a missing translation breaks the build). Messages that come
 from the server (the `detail` field of error responses) are shown as they are and are not translated.
 
+## Authentication settings
+
+Login tokens (JWT) are signed with a secret that the application **requires at startup**: without a strong
+`JWT_SECRET` (at least 32 bytes) it refuses to start and prints how to fix it. There is no default value.
+
+```powershell
+.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_hex(32))"   # generate a value
+# put it into .env as JWT_SECRET=<value>   (see .env.example)
+```
+
+- Docker Compose reads `JWT_SECRET` from `.env`. In Kubernetes `k8s/deploy.sh` generates a random value once and
+  keeps it in the Secret `endless-library-jwt`.
+- Tests use a fixed test-only value that `tests/conftest.py` sets; a real secret is never used by tests.
+- Replacing the secret logs everybody out: every issued token becomes invalid.
+
 ## Running in containers
 
 The whole application (API, frontend, migrations) is built into images and started with the `full` profile:
@@ -170,7 +185,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-415 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+466 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 
@@ -187,7 +202,7 @@ pytest tests/smoke -m smoke --no-cov         # tests of the deployed cluster (af
 
 | Folder | Tests | Level | What it checks | Where it runs in CI |
 |---|---|---|---|---|
-| `tests/unit` | 86 | unit | service logic, fines, log format, password hashing and policy | Tests |
+| `tests/unit` | 137 | unit | service logic, fines, log format, password hashing and policy, JWT tokens and secret configuration | Tests |
 | `tests/api` | 159 | API (in memory) | status codes, format, errors, Redis cache, ranking, metrics, contract regressions | Tests |
 | `tests/db` | 42 | database | the database's own constraints (uniqueness, foreign keys, account rules), recovery after dropped connections | Tests |
 | `tests/migrations` | 11 | migrations | apply from scratch, rollback, match with the models | Tests |
