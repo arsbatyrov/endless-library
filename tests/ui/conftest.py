@@ -115,7 +115,12 @@ def ui_stack():
         open(web_log_path, "w", encoding="utf-8"),
     )
 
-    api_env = {**os.environ, "DATABASE_URL": e2e_url.render_as_string(hide_password=False)}
+    # AUTH_REQUIRED=false: the web UI has no sign-in page yet (AUTH-013); then the UI tests will log in instead.
+    api_env = {
+        **os.environ,
+        "DATABASE_URL": e2e_url.render_as_string(hide_password=False),
+        "AUTH_REQUIRED": "false",
+    }
     web_env = {**os.environ, "API_TARGET": f"http://127.0.0.1:{API_PORT}"}
     api = subprocess.Popen(
         [

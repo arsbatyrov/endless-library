@@ -62,6 +62,24 @@ Login tokens (JWT) are signed with a secret that the application **requires at s
 - Docker Compose reads `JWT_SECRET` from `.env`. In Kubernetes `k8s/deploy.sh` generates a random value once and
   keeps it in the Secret `endless-library-jwt`.
 - Tests use a fixed test-only value that `tests/conftest.py` sets; a real secret is never used by tests.
+
+### Roles and the temporary `AUTH_REQUIRED` switch
+
+Books, readers and loans demand a login (`Authorization: Bearer <access token>`) and a role:
+
+| Role | Allowed |
+|---|---|
+| `reader` | read the catalogue: `GET /books`, `GET /books/{id}`, `GET /books/popular` |
+| `librarian`, `admin` | everything on books, readers and loans |
+
+No or a bad token gives `401` (with `WWW-Authenticate: Bearer`), a role that is not allowed gives `403`. `/health`,
+`/ready`, `/docs` and `/openapi.json` stay open. A disabled or demoted user is refused at once, because the role and
+the active flag are read from the database on every request.
+
+**Temporary:** the web UI has no sign-in page yet (AUTH-013), so the Docker Compose file, the Kubernetes manifest and
+the UI tests set `AUTH_REQUIRED=false`, which keeps these endpoints open as before. The application's own default is
+`true` (protected); the value is validated at startup (a typo stops the application) and a switched-off start logs a
+`ROLE PROTECTION IS OFF` warning. The switch will be removed together with AUTH-013.
 - Replacing the secret logs everybody out: every issued token becomes invalid.
 
 ## Running in containers
@@ -185,7 +203,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-582 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+683 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 

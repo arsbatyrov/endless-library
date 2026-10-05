@@ -31,3 +31,19 @@ def load_jwt_secret(environ: Mapping[str, str] | None = None) -> str:
             f"JWT_SECRET is too short: it must be at least {MIN_SECRET_BYTES} bytes. {_HOW_TO_FIX}"
         )
     return secret
+
+
+def auth_required(environ: Mapping[str, str] | None = None) -> bool:
+    """Whether the existing endpoints (books, readers, loans) demand a login. TEMPORARY switch (AUTH-007).
+
+    On by default. It can be switched off only with the exact word `false`; any other unknown value is an error, so a
+    typo can never silently turn the protection off. The switch exists only until the sign-in page is built
+    (AUTH-013), because the web UI, the cluster smoke tests and the contract tests cannot log in before that.
+    """
+    environ = os.environ if environ is None else environ
+    value = environ.get("AUTH_REQUIRED", "").strip().lower()
+    if value in ("", "true"):
+        return True
+    if value == "false":
+        return False
+    raise AuthConfigError(f"AUTH_REQUIRED must be 'true' or 'false', got {value!r}")

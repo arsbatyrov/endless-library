@@ -3,13 +3,19 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import STAFF_ROLES, require_roles
 from app.database import get_db
 from app.models import Reader
-from app.openapi_responses import BAD_REQUEST, CONFLICT, NOT_FOUND
+from app.openapi_responses import BAD_REQUEST, CONFLICT, FORBIDDEN, NOT_FOUND, UNAUTHORIZED
 from app.schemas import LoanRead, PathId, ReaderCreate, ReaderRead
 from app.services.loans import ensure_reader_has_no_loans, get_active_loans
 
-router = APIRouter(prefix="/readers", tags=["readers"])
+router = APIRouter(
+    prefix="/readers",
+    tags=["readers"],
+    dependencies=[Depends(require_roles(*STAFF_ROLES))],
+    responses={**UNAUTHORIZED, **FORBIDDEN},
+)
 
 
 def get_reader_or_404(reader_id: int, db: Session) -> Reader:

@@ -11,7 +11,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.auth.config import load_jwt_secret
+from app.auth.config import auth_required, load_jwt_secret
 from app.database import get_db
 from app.logging_config import new_request_id, request_id_var, setup_logging
 from app.metrics import HTTP_DURATION, HTTP_REQUESTS, UNMEASURED_PATHS
@@ -22,8 +22,14 @@ from app.services.errors import BusinessRuleError, NotFoundError
 
 # Fail fast: without a strong JWT secret the application must not start (there is no fallback value).
 load_jwt_secret()
+# Fail fast on a mistyped AUTH_REQUIRED too: a typo must never silently turn the protection off.
+_protection_on = auth_required()
 
 setup_logging()
+if not _protection_on:
+    logging.getLogger("endless_library").warning(
+        "AUTH_REQUIRED=false: ROLE PROTECTION IS OFF for books, readers and loans. Temporary, until the sign-in page exists (AUTH-013)."
+    )
 access_logger = logging.getLogger("endless_library.access")
 
 # Таблицы здесь не создаются: структурой базы управляют миграции (alembic upgrade head).
