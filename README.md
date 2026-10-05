@@ -201,7 +201,7 @@ Secret. Metric history is kept in the pod's memory (it is lost when the pod is r
 ## Contract tests (OpenAPI)
 
 The API contract is its OpenAPI schema (`/openapi.json`, `/docs`): the frontend and any other client rely on it.
-There are two checks in `tests/contract` (the `contract` marker, not run by default; in CI this is the
+There are three checks in `tests/contract` (the `contract` marker, not run by default; in CI this is the
 "Contract tests (Schemathesis)" job):
 
 ```powershell
@@ -218,10 +218,14 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
   regular test in `tests/api/test_contract_regressions_api.py`.
 - **Schema snapshot** (`tests/contract/openapi.json`): any change of the contract turns the test red and shows which
   operations were added or removed. A snapshot update is visible in the pull request diff.
+- **Security contract** (`test_security_contract.py`): closed by default. Every operation must be in an explicit
+  list of open ones or declare the bearer scheme and `401`; against the running API every protected operation is
+  called without a token, with a bad token and with a reader token, and `403` must appear exactly where the contract
+  documents it. Schemathesis itself runs with the protection on, as an admin.
 
 ## Tests
 
-859 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+880 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 
