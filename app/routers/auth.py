@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
+from app.auth.login_guard import login_guard
 from app.auth.passwords import (
     PasswordPolicyError,
     hash_password,
@@ -24,6 +25,7 @@ from app.database import get_db
 from app.models import User
 from app.openapi_responses import BAD_REQUEST, UNAUTHORIZED
 from app.schemas import (
+    ErrorResponse,
     LoginRequest,
     LoginResponse,
     MeResponse,
@@ -36,12 +38,23 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # One text for every kind of failure (wrong password, unknown login, disabled account): the answer must not reveal
 # which logins exist.
 INVALID_CREDENTIALS = "Invalid username or password"
+TOO_MANY_ATTEMPTS = "Too many failed login attempts. Try again later."
 INVALID_REFRESH_TOKEN = "Invalid or expired refresh token"
 WRONG_CURRENT_PASSWORD = "Current password is incorrect"
 
 _LOGIN_RESPONSES = {
     **BAD_REQUEST,
     **UNAUTHORIZED,
+    429: {
+        "model": ErrorResponse,
+        "description": "Too many failed attempts for this login; wait for Retry-After seconds",
+        "headers": {
+            "Retry-After": {
+                "description": "Seconds until the login can be tried again",
+                "schema": {"type": "integer"},
+            }
+        },
+    },
     200: {
         "description": "Signed in. The access token is in the body; the refresh token is set as an httpOnly cookie.",
         "headers": {
@@ -90,9 +103,20 @@ def _clear_refresh_cookie(response: Response, request: Request) -> None:
 
 @router.post("/login", response_model=LoginResponse, responses=_LOGIN_RESPONSES)
 def login(data: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
+    # Locked logins are refused before the password is even looked at (it would cost a hash for nothing).
+    wait = login_guard.check(data.username)
+    if wait is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=TOO_MANY_ATTEMPTS,
+            headers={"Retry-After": str(wait)},
+        )
+
     user = authenticate(db, data.username, data.password)
     if user is None:
+        login_guard.record_failure(data.username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=INVALID_CREDENTIALS)
+    login_guard.reset(data.username)
 
     refresh_token = issue_refresh_token(db, user)
     user.last_login_at = datetime.now(UTC)

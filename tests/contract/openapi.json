@@ -698,6 +698,24 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too many failed attempts for this login; wait for Retry-After seconds",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the login can be tried again",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
           }
         },
         "summary": "Login",
