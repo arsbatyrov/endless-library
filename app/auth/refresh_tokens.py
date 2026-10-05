@@ -46,6 +46,12 @@ def _revoke_all(db: Session, user_id: int, now: datetime) -> None:
     )
 
 
+def revoke_all_refresh_tokens(db: Session, user_id: int, now: datetime | None = None) -> None:
+    """Sign the user out everywhere (after a password change). Commits."""
+    _revoke_all(db, user_id, now or datetime.now(UTC))
+    db.commit()
+
+
 def rotate_refresh_token(
     db: Session, token: str, now: datetime | None = None
 ) -> tuple[User, str] | None:

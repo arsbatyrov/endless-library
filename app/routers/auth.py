@@ -4,17 +4,31 @@ from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import get_current_user
+from app.auth.passwords import (
+    PasswordPolicyError,
+    hash_password,
+    validate_password_policy,
+    verify_password,
+)
 from app.auth.refresh_tokens import (
     COOKIE_NAME,
     REFRESH_TOKEN_LIFETIME,
     issue_refresh_token,
+    revoke_all_refresh_tokens,
     revoke_refresh_token,
     rotate_refresh_token,
 )
 from app.auth.tokens import ACCESS_TOKEN_LIFETIME, create_access_token
 from app.database import get_db
+from app.models import User
 from app.openapi_responses import BAD_REQUEST, UNAUTHORIZED
-from app.schemas import LoginRequest, LoginResponse
+from app.schemas import (
+    LoginRequest,
+    LoginResponse,
+    MeResponse,
+    PasswordChangeRequest,
+)
 from app.services.auth import authenticate
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -23,6 +37,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # which logins exist.
 INVALID_CREDENTIALS = "Invalid username or password"
 INVALID_REFRESH_TOKEN = "Invalid or expired refresh token"
+WRONG_CURRENT_PASSWORD = "Current password is incorrect"
 
 _LOGIN_RESPONSES = {
     **BAD_REQUEST,
@@ -134,6 +149,50 @@ def logout(
     """End this session: revoke the refresh token and clear the cookie. Safe to repeat."""
     if refresh_token:
         revoke_refresh_token(db, refresh_token)
+    done = Response(status_code=status.HTTP_204_NO_CONTENT)
+    _clear_refresh_cookie(done, request)
+    return done
+
+
+def _password_error(message: str) -> list[dict]:
+    """A 422 in the same shape as request-validation errors, so clients handle one format."""
+    return [{"type": "password_policy", "loc": ["body", "new_password"], "msg": message}]
+
+
+@router.get("/me", response_model=MeResponse, responses=UNAUTHORIZED)
+def me(user: User = Depends(get_current_user)):
+    return MeResponse(id=user.id, username=user.username, role=user.role, reader_id=user.reader_id)
+
+
+@router.post(
+    "/password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    responses={**BAD_REQUEST, **UNAUTHORIZED},
+)
+def change_password(
+    data: PasswordChangeRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Change the caller's own password. All refresh tokens are revoked, so every session must sign in again."""
+    if not verify_password(data.current_password, user.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=WRONG_CURRENT_PASSWORD)
+    try:
+        validate_password_policy(data.new_password, user.username)
+    except PasswordPolicyError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)
+        ) from None
+    if verify_password(data.new_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=_password_error("New password must differ from the current one"),
+        )
+
+    user.password_hash = hash_password(data.new_password)
+    revoke_all_refresh_tokens(db, user.id)  # commits together with the new hash
     done = Response(status_code=status.HTTP_204_NO_CONTENT)
     _clear_refresh_cookie(done, request)
     return done

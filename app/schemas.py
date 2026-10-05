@@ -95,6 +95,24 @@ class LoginResponse(BaseModel):
     expires_in: int  # seconds until the access token expires
 
 
+class MeResponse(BaseModel):
+    """The signed-in user's own profile. Never contains the password hash."""
+
+    id: int
+    username: str
+    role: str
+    reader_id: int | None
+
+
+class PasswordChangeRequest(BaseModel):
+    """Length limits keep an overlong password away from the (expensive) hashing; the policy is checked in the service."""
+
+    model_config = ConfigDict(strict=True)
+
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(max_length=128)
+
+
 class ReaderCreate(BaseModel):
     model_config = ConfigDict(strict=True)
 
