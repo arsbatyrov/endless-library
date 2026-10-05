@@ -308,6 +308,13 @@ jobs:
       - name: The admin still signs in after the second deploy
         run: pytest tests/smoke/test_first_admin.py -m smoke --no-cov
 
+      # AUTH-021: the opt-in demo deploy (public passwords, local use only): never part of the normal deploy above.
+      - name: Deploy with demo accounts (DEMO=1)
+        run: SKIP_BUILD=1 DEMO=1 bash k8s/deploy.sh | tee deploy-demo.log
+
+      - name: The demo accounts work, the Secret follows the administrator and the API warns
+        run: SMOKE_DEMO=1 pytest tests/smoke/test_demo_access.py -m smoke --no-cov
+
       - name: Show cluster state on failure
         if: failure()
         run: |

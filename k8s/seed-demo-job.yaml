@@ -1,0 +1,34 @@
+# Job: one-off task "create or reset the DEMO accounts" (AUTH-021). INSECURE: the passwords are public (README).
+# It is created by deploy.sh ONLY when the script is run with DEMO=1, never by default, never in CI's normal deploy.
+# DEMO_ACCOUNTS=true is the switch that the command itself demands; without it `seed-demo` refuses to do anything.
+# generateName: every run creates a NEW Job (a finished Job cannot be changed or re-run); old ones are removed after an
+# hour. Created with `kubectl create -f` (not apply), see deploy.sh.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: seed-demo-
+  namespace: endless-library
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: seed-demo
+          image: endless-library-api:local
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "app.cli", "seed-demo"]
+          env:
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: endless-library-db, key: DATABASE_URL}}
+            - name: DEMO_ACCOUNTS
+              value: "true"
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities: {drop: ["ALL"]}

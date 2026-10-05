@@ -19,6 +19,7 @@ from urllib.parse import urlparse
 import httpx2 as httpx
 import pytest
 
+from app.demo import DEMO_ACCOUNTS
 from tests.ui.pages import App
 
 SMOKE_URL = os.getenv("SMOKE_BASE_URL", "http://127.0.0.1:8080").rstrip("/")
@@ -71,10 +72,15 @@ def browser_context_args(browser_context_args):
 
 @pytest.fixture(scope="session")
 def admin_credentials():
-    """Login and password of the first administrator, read from the cluster Secret."""
-    return cluster_secret("endless-library-admin", "username"), cluster_secret(
-        "endless-library-admin", "password"
-    )
+    """Login and password of the first administrator, read from the cluster Secret.
+
+    After a `DEMO=1` deploy the Secret holds a note instead (the password is the public demo one, see app/demo.py).
+    """
+    username = cluster_secret("endless-library-admin", "username")
+    password = cluster_secret("endless-library-admin", "password")
+    if password.startswith("demo-mode-"):
+        password = next(a.password for a in DEMO_ACCOUNTS if a.username == username)
+    return username, password
 
 
 @pytest.fixture
