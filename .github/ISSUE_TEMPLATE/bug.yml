@@ -1,0 +1,204 @@
+name: Bug
+description: Report a defect with reproduction steps, evidence, priority and a closing checklist
+title: "[Bug][area] Short symptom"
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## How to use this template
+        A good bug report lets a person who did not see the bug reproduce it in a few minutes. The **tester sets the
+        priority**; the owner can override it. After creating the issue, add the matching labels: `priority:*` and
+        `area:*` (the form cannot add them from the fields below), then remove `needs-triage` once priority is confirmed.
+        Policy and examples: `docs/agent-team/process/bug-triage.md`.
+
+        ### Priority meaning
+        | Priority | Meaning |
+        |---|---|
+        | **Critical** | System unusable, data lost or corrupted, or a security problem. Fix immediately. Blocks a PR or release. |
+        | **High** | A key function is broken and there is no workaround. Fix in the current work. Blocks a PR when found in the feature under test. |
+        | **Mid** | Works with flaws, or a workaround exists. Planned fix. |
+        | **Low** | Cosmetic or minimal impact. Fix when there is time. |
+
+        The repository is public: **no tokens, passwords or personal data** in the report, logs or screenshots.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: "One or two sentences: what is wrong and where."
+      placeholder: Issuing a book to a reader who already has 3 books returns 500 instead of 409.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: Set by the tester (see the table above). Add the same `priority:*` label after creating the issue.
+      options:
+        - Critical
+        - High
+        - Mid
+        - Low
+    validations:
+      required: true
+
+  - type: textarea
+    id: priority_reason
+    attributes:
+      label: Why this priority
+      description: "One line: impact, who is affected, is there a workaround."
+      placeholder: Core flow is blocked for every librarian; no workaround.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: areas
+    attributes:
+      label: Area
+      description: Where the defect lives. Add the matching `area:*` label after creating the issue.
+      multiple: true
+      options:
+        - api
+        - web
+        - android
+        - infra
+        - ci
+        - docs
+    validations:
+      required: true
+
+  - type: input
+    id: requirement
+    attributes:
+      label: Requirement ID or related ticket
+      description: The requirement or acceptance criterion this violates, and the ticket or PR under test (#number).
+      placeholder: "LOAN-001, criterion 2, ticket #52"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: found_by
+    attributes:
+      label: How was the bug found
+      options:
+        - Manual testing
+        - Exploratory testing
+        - Automated test (local run)
+        - Automated test (CI)
+        - Deployed environment (cluster)
+        - Code review
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: regression
+    attributes:
+      label: Is it a regression
+      description: Did this work before?
+      options:
+        - "Yes: it worked before"
+        - "No: it never worked"
+        - "Unknown"
+    validations:
+      required: true
+
+  - type: input
+    id: first_seen
+    attributes:
+      label: First seen in or introduced by
+      description: Commit, PR, version or date when it first appeared (best effort; for a regression, the last good and first bad version).
+      placeholder: "first bad - PR #48 (abc1234), last good - PR #47"
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Where it happens. Cluster or local, branch or commit, browser and version, interface language (ru or en), OS.
+      placeholder: |
+        Cluster http://127.0.0.1:8080, commit abc1234
+        Chromium 150, language ru, Windows 11
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered, complete, starting from a known state. Include the data you used (test data only).
+      placeholder: |
+        1. Create a reader and 4 books (copies 1 each).
+        2. Issue books 1, 2 and 3 to the reader.
+        3. Issue book 4 to the same reader.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: What should happen. Cite the requirement or acceptance criterion if there is one.
+      placeholder: 409 with a clear message; no loan is created.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: What happens instead. Error text, status code, screenshot description, relevant log lines.
+      placeholder: 500 Internal Server Error; the loan table has 4 rows.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Frequency
+      options:
+        - Always
+        - Sometimes
+        - Once
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Failing test name and path, trace or video, request id from the logs (`X-Request-ID`), screenshots, log excerpts. No secrets.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: report_quality
+    attributes:
+      label: Report quality checklist
+      description: Complete before submitting.
+      options:
+        - label: I reproduced the bug (or Frequency is "Once" and I explain why in the summary)
+          required: true
+        - label: I searched existing issues and this is not a duplicate
+          required: true
+        - label: The steps are complete and another person can follow them
+          required: true
+        - label: Evidence is attached or linked (test, trace, logs, screenshot)
+        - label: The report contains no secrets, tokens or personal data
+          required: true
+        - label: I set the priority and will add the `priority:*` and `area:*` labels
+
+  - type: checkboxes
+    id: closing
+    attributes:
+      label: Closing checklist (tick while working; the bug is closed only when all are done)
+      description: Filled in by the developer and the tester during the fix.
+      options:
+        - label: Root cause is understood and recorded in a comment
+        - label: A regression test exists and fails without the fix (test path in a comment)
+        - label: "The fix is merged (PR linked with Fixes #number)"
+        - label: QA verified the fix on the deployed environment
+        - label: Related documentation or other defects of the same kind were checked

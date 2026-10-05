@@ -85,7 +85,7 @@ Tests use the databases `library_test`, `library_e2e_test`, `library_migrations_
 
 - Tickets are GitHub issues in this repository, created from `.github/ISSUE_TEMPLATE/feature.yml` (feature) and a bug
   template (see `docs/agent-team/process/bug-triage.md` once active). Labels: type (`feature`, `bug`, `task`, `test`),
-  severity (`sev:critical|major|minor|trivial`), priority (`P1`-`P3`), area (`area:api|web|android|infra|ci`).
+  feature priority (`P1`-`P3`), bug priority (`priority:critical|high|mid|low`, set by the tester), area (`area:api|web|android|infra|ci`).
 - The project board "Endless Library" (https://github.com/users/arsbatyrov/projects/1) holds the ticket **Status**, which is
   the handoff signal between roles. See `docs/agent-team/process/agent-workflow.md`.
 - Definition of Ready and Definition of Done are in the feature template. A ticket is not Ready without Given/When/Then criteria.

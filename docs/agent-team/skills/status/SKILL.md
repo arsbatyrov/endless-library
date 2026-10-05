@@ -19,7 +19,7 @@ Read-only. Chat in **Russian**. Ticket: `$ARGUMENTS` (optional; without it show 
 
 A compact table per ticket:
 
-| Ticket | Status | Last action (role, when) | Who acts next | Waiting for the owner? | Open bugs (severity) | PR and checks |
+| Ticket | Status | Last action (role, when) | Who acts next | Waiting for the owner? | Open bugs (priority) | PR and checks |
 |---|---|---|---|---|---|---|
 
 Then, for a single ticket, add: the acceptance-criteria count, which are verified by tests, and the exact next command
