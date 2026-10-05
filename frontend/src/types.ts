@@ -75,3 +75,11 @@ export interface Account {
   created_at: string;
   last_login_at: string | null;
 }
+
+/** Данные новой учётной записи (см. UserCreate в app/schemas.py). */
+export interface AccountInput {
+  username: string;
+  password: string;
+  role: CurrentUser["role"];
+  reader_id: number | null;
+}

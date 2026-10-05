@@ -166,7 +166,7 @@ def test_reader_form_and_table_in_english(app, api):
     app.go_to_readers()
 
     expect(app.page.get_by_test_id("readers-table").get_by_role("columnheader")).to_have_text(
-        ["Name", "Email", "Actions"]
+        ["Name", "Email", "Account", "Actions"]
     )
     app.readers.open_add_form()
     expect(app.page.get_by_role("heading", name="New reader", level=3)).to_be_visible()
