@@ -2,14 +2,23 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import ALL_ROLES, STAFF_ROLES, require_roles
 from app.cache import BOOKS_LIST_KEY, book_key, cache
 from app.database import get_db
 from app.models import Book
-from app.openapi_responses import BAD_REQUEST, CONFLICT, NOT_FOUND
+from app.openapi_responses import BAD_REQUEST, CONFLICT, FORBIDDEN, NOT_FOUND, UNAUTHORIZED
 from app.schemas import BookCreate, BookRead, PathId, PopularBook
 from app.services.loans import count_loans_per_book, ensure_book_has_no_loans
 
-router = APIRouter(prefix="/books", tags=["books"])
+router = APIRouter(
+    prefix="/books",
+    tags=["books"],
+    dependencies=[Depends(require_roles(*ALL_ROLES))],
+    responses={**UNAUTHORIZED},
+)
+
+# Changing the catalogue is for librarians and admins only; readers may read.
+staff_only = [Depends(require_roles(*STAFF_ROLES))]
 
 
 def get_book_or_404(book_id: int, db: Session) -> Book:
@@ -20,7 +29,11 @@ def get_book_or_404(book_id: int, db: Session) -> Book:
 
 
 @router.post(
-    "", response_model=BookRead, status_code=status.HTTP_201_CREATED, responses={**BAD_REQUEST}
+    "",
+    response_model=BookRead,
+    status_code=status.HTTP_201_CREATED,
+    responses={**BAD_REQUEST, **FORBIDDEN},
+    dependencies=staff_only,
 )
 def create_book(data: BookCreate, db: Session = Depends(get_db)):
     book = Book(**data.model_dump())
@@ -83,7 +96,12 @@ def get_book(book_id: PathId, response: Response, db: Session = Depends(get_db))
     return data
 
 
-@router.put("/{book_id}", response_model=BookRead, responses={**BAD_REQUEST, **NOT_FOUND})
+@router.put(
+    "/{book_id}",
+    response_model=BookRead,
+    responses={**BAD_REQUEST, **FORBIDDEN, **NOT_FOUND},
+    dependencies=staff_only,
+)
 def update_book(book_id: PathId, data: BookCreate, db: Session = Depends(get_db)):
     book = get_book_or_404(book_id, db)
     for field, value in data.model_dump().items():
@@ -95,7 +113,10 @@ def update_book(book_id: PathId, data: BookCreate, db: Session = Depends(get_db)
 
 
 @router.delete(
-    "/{book_id}", status_code=status.HTTP_204_NO_CONTENT, responses={**NOT_FOUND, **CONFLICT}
+    "/{book_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={**FORBIDDEN, **NOT_FOUND, **CONFLICT},
+    dependencies=staff_only,
 )
 def delete_book(book_id: PathId, db: Session = Depends(get_db)):
     book = get_book_or_404(book_id, db)

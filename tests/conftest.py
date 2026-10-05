@@ -35,6 +35,9 @@ os.environ["REDIS_URL"] = ""
 # The application refuses to start without a strong JWT secret (AUTH-003). Tests always use this fixed, public,
 # test-only value, never a real secret from .env or the environment; subprocesses (UI tests) inherit it.
 os.environ["JWT_SECRET"] = "test-only-secret-not-for-production-0123456789abcdef"
+# Temporary (AUTH-007): the suite runs with the role protection of books/readers/loans switched off, because the web UI,
+# the smoke tests and the contract tests cannot log in yet. tests/api/test_role_protection_api.py turns it on per test.
+os.environ["AUTH_REQUIRED"] = "false"
 REDIS_TEST_URL = os.environ.get("REDIS_TEST_URL", "redis://127.0.0.1:6379/15")
 
 # Импорты приложения только после подмены DATABASE_URL (поэтому E402).

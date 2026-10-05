@@ -3,12 +3,18 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import STAFF_ROLES, require_roles
 from app.database import get_db
-from app.openapi_responses import BAD_REQUEST, CONFLICT, NOT_FOUND
+from app.openapi_responses import BAD_REQUEST, CONFLICT, FORBIDDEN, NOT_FOUND, UNAUTHORIZED
 from app.schemas import LoanCreate, LoanRead, LoanReturnRead, PathId
 from app.services import loans as loan_service
 
-router = APIRouter(prefix="/loans", tags=["loans"])
+router = APIRouter(
+    prefix="/loans",
+    tags=["loans"],
+    dependencies=[Depends(require_roles(*STAFF_ROLES))],
+    responses={**UNAUTHORIZED, **FORBIDDEN},
+)
 
 
 @router.post(

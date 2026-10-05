@@ -15,6 +15,9 @@ UNAUTHORIZED = {
         "description": "Invalid credentials, or a missing or invalid token",
     }
 }
+FORBIDDEN = {
+    403: {"model": ErrorResponse, "description": "The role of the user is not allowed to do this"}
+}
 NOT_FOUND = {404: {"model": ErrorResponse, "description": "Объект не найден"}}
 CONFLICT = {
     409: {"model": ErrorResponse, "description": "Нарушено бизнес-правило или уникальность"}
