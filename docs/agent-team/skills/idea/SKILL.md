@@ -45,7 +45,7 @@ Show the owner a short Russian summary of the criteria plus the full English dra
 ## Step 5: create
 
 After explicit confirmation, have the analyst (or yourself) create the issue(s) with `gh issue create`: English title
-`[REQ-ID] short title`, body in the template structure, labels `feature`, `area:*`, a priority label (`P1`-`P3`, ask the owner
+`[REQ-ID] short title`, body in the template structure, labels `feature`, `area:*`, a priority label (`priority:critical|high|mid|low`, ask the owner
 if unclear), add to the project board "Endless Library" with Status `Ready`. If the work was split, create the parent first and
 list the children in it.
 
