@@ -170,7 +170,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-345 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+379 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 
@@ -189,8 +189,8 @@ pytest tests/smoke -m smoke --no-cov         # tests of the deployed cluster (af
 |---|---|---|---|---|
 | `tests/unit` | 50 | unit | service logic, fines, log format | Tests |
 | `tests/api` | 159 | API (in memory) | status codes, format, errors, Redis cache, ranking, metrics, contract regressions | Tests |
-| `tests/db` | 13 | database | the database's own constraints (uniqueness, foreign keys), recovery after dropped connections | Tests |
-| `tests/migrations` | 6 | migrations | apply from scratch, rollback, match with the models | Tests |
+| `tests/db` | 42 | database | the database's own constraints (uniqueness, foreign keys, account rules), recovery after dropped connections | Tests |
+| `tests/migrations` | 11 | migrations | apply from scratch, rollback, match with the models | Tests |
 | `tests/concurrency` | 2 | race conditions | simultaneous requests to the same data | Tests |
 | `tests/contract` | 18 | contract | Schemathesis against OpenAPI and the schema snapshot | Contract tests |
 | `tests/ui` | 77 | interface | scenarios in a real browser (Playwright), errors, network failures | UI tests |
