@@ -1,23 +1,23 @@
-name: Feature (требование)
-description: Новая возможность или изменение поведения с критериями приёмки, Definition of Ready и Definition of Done
-title: "[REQ-ID] Краткое название"
+name: Feature (requirement)
+description: A new capability or a behaviour change, with acceptance criteria, Definition of Ready and Definition of Done
+title: "[REQ-ID] Short title"
 labels: ["feature", "needs-triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        ## Как пользоваться шаблоном
-        Заполните поля ниже. **Definition of Ready (DoR)** отмечайте до того, как переносить задачу в колонку *Ready*:
-        пока пункты не выполнены, задача остаётся в *Backlog*. **Definition of Done (DoD)** отмечайте в процессе
-        работы: задача закрывается (`Fixes #номер` в PR) только когда выполнены все пункты.
+        ## How to use this template
+        Fill in the fields below. Tick the **Definition of Ready (DoR)** items before moving the ticket to the
+        *Ready* column: until they are done, the ticket stays in *Backlog*. Tick the **Definition of Done (DoD)**
+        items while you work: the ticket is closed (`Fixes #number` in the PR) only when every item is done.
 
-        Репозиторий публичный: не пишите в задаче токены, пароли и персональные данные.
+        The repository is public: do not put tokens, passwords or personal data into the ticket.
 
   - type: input
     id: requirement_id
     attributes:
-      label: Идентификатор требования
-      description: Из документа с требованиями. Он же указывается в заголовке и в маркерах тестов.
+      label: Requirement ID
+      description: From the requirements document. It is also used in the title and in test markers.
       placeholder: LOAN-001
     validations:
       required: true
@@ -25,19 +25,19 @@ body:
   - type: textarea
     id: story
     attributes:
-      label: Описание (User story)
-      description: Кто, что хочет и зачем.
+      label: Description (user story)
+      description: Who wants what, and why.
       placeholder: |
-        Как библиотекарь, я хочу выдать книгу читателю,
-        чтобы учёт экземпляров и сроков возврата велся автоматически.
+        As a librarian, I want to issue a book to a reader,
+        so that copies and return dates are tracked automatically.
     validations:
       required: true
 
   - type: dropdown
     id: areas
     attributes:
-      label: Область (платформы)
-      description: Что затрагивает задача. После создания выставьте то же в поле Area на доске проекта и поставьте метки area:*.
+      label: Area (platforms)
+      description: What the ticket affects. After creating it, set the same value in the Area field on the project board and add the area:* labels.
       multiple: true
       options:
         - api
@@ -52,77 +52,77 @@ body:
   - type: textarea
     id: acceptance
     attributes:
-      label: Критерии приёмки (Given / When / Then)
-      description: Проверяемые условия готовности. По ним пишутся тесты и принимается результат.
+      label: Acceptance criteria (Given / When / Then)
+      description: Verifiable conditions of completion. Tests are written from them and the result is accepted against them.
       placeholder: |
-        1. Дано: у читателя меньше 3 книг и есть свободный экземпляр
-           Когда: библиотекарь выдаёт книгу
-           Тогда: выдача создана, срок возврата +14 дней, остаток уменьшился на 1
-        2. Дано: у читателя уже 3 книги
-           Когда: библиотекарь выдаёт ещё одну
-           Тогда: выдача отклонена с ошибкой, остаток не изменился
+        1. Given: the reader has fewer than 3 books and a copy is available
+           When: the librarian issues the book
+           Then: a loan is created, the due date is +14 days, and the available copies decrease by 1
+        2. Given: the reader already has 3 books
+           When: the librarian issues one more
+           Then: the loan is rejected with an error and the available copies do not change
     validations:
       required: true
 
   - type: textarea
     id: out_of_scope
     attributes:
-      label: Вне рамок задачи
-      description: Что намеренно НЕ входит (чтобы не растягивать задачу).
+      label: Out of scope
+      description: What is deliberately NOT included (so the ticket does not grow).
     validations:
       required: false
 
   - type: textarea
     id: dependencies
     attributes:
-      label: Зависимости и ссылки
-      description: Связанные задачи (#номер), документы, макеты, изменения контракта API.
+      label: Dependencies and links
+      description: Related tickets (#number), documents, mock-ups, API contract changes.
     validations:
       required: false
 
   - type: checkboxes
     id: test_levels
     attributes:
-      label: Уровни тестирования
-      description: Где задача должна быть покрыта автотестами (отметьте план, а не факт).
+      label: Test levels
+      description: Where the ticket must be covered by automated tests (tick the plan, not the result).
       options:
         - label: Unit
         - label: API
-        - label: Контракт (OpenAPI, Schemathesis)
+        - label: Contract (OpenAPI, Schemathesis)
         - label: UI web (Playwright)
         - label: Mobile (Appium)
-        - label: Smoke на кластере
-        - label: Ручное и исследовательское тестирование
+        - label: Smoke on the cluster
+        - label: Manual and exploratory testing
 
   - type: checkboxes
     id: dor
     attributes:
-      label: Definition of Ready (готово к взятию в работу)
-      description: Отметьте, когда пункт выполнен. Все пункты закрыты, значит можно переносить в Ready.
+      label: Definition of Ready (ready to be taken into work)
+      description: Tick an item when it is done. When all items are done, the ticket can move to Ready.
       options:
-        - label: Ценность понятна, user story сформулирована (кто, что, зачем)
-        - label: Критерии приёмки записаны в формате Given/When/Then и проверяемы
-        - label: Задача небольшая (до 1–2 дней); если больше, разбита на подзадачи
-        - label: Указаны платформы и зависимости, блокирующих вопросов нет
-        - label: Определены уровни тестирования и нужные тестовые данные
-        - label: Если меняется API, изменение контракта (OpenAPI) описано и согласовано
-        - label: Если есть интерфейс, определены тексты на русском и английском и состояния (загрузка, пусто, ошибка)
-        - label: Определена серьёзность и приоритет (метки sev:*, P1–P3), задача добавлена на доску
+        - label: The value is clear and the user story is written (who, what, why)
+        - label: Acceptance criteria are written as Given/When/Then and are verifiable
+        - label: The ticket is small (up to 1-2 days); if it is bigger, it is split into subtasks
+        - label: Platforms and dependencies are listed, and there are no blocking questions
+        - label: Test levels and the required test data are defined
+        - label: If the API changes, the contract (OpenAPI) change is described and agreed
+        - label: If there is a user interface, the Russian and English texts and the states (loading, empty, error) are defined
+        - label: Severity and priority are set (sev:* labels, P1-P3) and the ticket is on the board
 
   - type: checkboxes
     id: dod
     attributes:
-      label: Definition of Done (готово)
-      description: Отмечайте в процессе работы. Задача закрывается, когда выполнены все пункты.
+      label: Definition of Done
+      description: Tick items as you work. The ticket is closed when all items are done.
       options:
-        - label: Код реализован, прошёл ревью, PR привязан (Fixes #номер)
-        - label: Все критерии приёмки выполнены и проверены
-        - label: Автотесты добавлены на запланированных уровнях и привязаны к идентификатору требования
-        - label: Все обязательные проверки CI зелёные (lint, тесты, контракт, UI, Docker, Kubernetes smoke)
-        - label: Если менялся API, снимок OpenAPI обновлён осознанно, обратная совместимость проверена
-        - label: Тексты интерфейса переведены (ru и en), состояния загрузки, пусто и ошибки проверены
-        - label: Нет секретов и персональных данных в коде, логах и тестовых данных; ошибки и граничные случаи обработаны
-        - label: Логи и метрики добавлены там, где нужно; дашборд или алерт обновлены при необходимости
-        - label: Документация обновлена (README, требования, примеры)
-        - label: Проверено на развёрнутом стенде (кластер), регрессии не найдены
-        - label: Найденные в ходе работы дефекты заведены как баги (bug) с серьёзностью и приоритетом
+        - label: The code is implemented, reviewed, and linked to the PR (Fixes #number)
+        - label: All acceptance criteria are met and verified
+        - label: Automated tests are added at the planned levels and linked to the requirement ID
+        - label: All required CI checks are green (lint, tests, contract, UI, Docker, Kubernetes smoke)
+        - label: If the API changed, the OpenAPI snapshot is updated deliberately and backward compatibility is checked
+        - label: Interface texts are translated (ru and en); loading, empty and error states are checked
+        - label: No secrets or personal data in code, logs or test data; errors and edge cases are handled
+        - label: Logs and metrics are added where needed; the dashboard or alert is updated if necessary
+        - label: Documentation is updated (README, requirements, examples)
+        - label: Verified on the deployed environment (cluster), no regressions found
+        - label: Defects found along the way are filed as bugs (bug) with severity and priority
