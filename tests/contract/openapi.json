@@ -748,7 +748,15 @@
         ],
         "responses": {
           "204": {
-            "description": "Successful Response"
+            "description": "Signed out; the cookie is cleared.",
+            "headers": {
+              "Set-Cookie": {
+                "description": "refresh_token cookie cleared (Max-Age=0), with the same path it was set with",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "422": {
             "content": {
@@ -819,7 +827,15 @@
         },
         "responses": {
           "204": {
-            "description": "Successful Response"
+            "description": "Password changed; every session is ended and the cookie is cleared.",
+            "headers": {
+              "Set-Cookie": {
+                "description": "refresh_token cookie cleared (Max-Age=0), with the same path it was set with",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "content": {
@@ -912,7 +928,15 @@
                 }
               }
             },
-            "description": "Invalid credentials, or a missing or invalid token"
+            "description": "Invalid credentials, or a missing or invalid token",
+            "headers": {
+              "Set-Cookie": {
+                "description": "refresh_token cookie cleared (Max-Age=0), with the same path it was set with",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "422": {
             "content": {

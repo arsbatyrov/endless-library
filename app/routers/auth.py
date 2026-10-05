@@ -129,8 +129,15 @@ def login(data: LoginRequest, request: Request, response: Response, db: Session 
     )
 
 
+_CLEARS_COOKIE = {
+    "Set-Cookie": {
+        "description": "refresh_token cookie cleared (Max-Age=0), with the same path it was set with",
+        "schema": {"type": "string"},
+    }
+}
+
 _REFRESH_RESPONSES = {
-    **UNAUTHORIZED,
+    401: {**UNAUTHORIZED[401], "headers": _CLEARS_COOKIE},
     200: {
         "description": "New access token in the body; the refresh token is replaced (rotation) via Set-Cookie.",
         "headers": {
@@ -164,7 +171,14 @@ def refresh(
     )
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    responses={
+        204: {"description": "Signed out; the cookie is cleared.", "headers": _CLEARS_COOKIE}
+    },
+)
 def logout(
     request: Request,
     refresh_token: str | None = Cookie(default=None),
@@ -192,7 +206,14 @@ def me(user: User = Depends(get_current_user)):
     "/password",
     status_code=status.HTTP_204_NO_CONTENT,
     response_class=Response,
-    responses={**BAD_REQUEST, **UNAUTHORIZED},
+    responses={
+        **BAD_REQUEST,
+        **UNAUTHORIZED,
+        204: {
+            "description": "Password changed; every session is ended and the cookie is cleared.",
+            "headers": _CLEARS_COOKIE,
+        },
+    },
 )
 def change_password(
     data: PasswordChangeRequest,
