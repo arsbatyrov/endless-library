@@ -1,6 +1,16 @@
 import { toApiError } from "./apiError";
 import { getAccessToken, refreshAccessToken, refreshProfile, sessionExpired } from "./auth";
-import type { Account, Book, BookInput, Loan, LoanReturn, PopularBook, Reader, ReaderInput } from "./types";
+import type {
+  Account,
+  AccountInput,
+  Book,
+  BookInput,
+  Loan,
+  LoanReturn,
+  PopularBook,
+  Reader,
+  ReaderInput,
+} from "./types";
 
 export { ApiError, actionErrorMsg, loadErrorMsg } from "./apiError";
 
@@ -95,4 +105,18 @@ export function returnBook(loanId: number): Promise<LoanReturn> {
 /** Учётные записи (для админа: все; библиотекарю сервер отдаёт только читателей). */
 export function getUsers(signal?: AbortSignal): Promise<Account[]> {
   return request<Account[]>("/api/users", { signal });
+}
+
+export function createUser(input: AccountInput): Promise<Account> {
+  return request<Account>("/api/users", jsonInit("POST", input));
+}
+
+/** Отключить или включить учётную запись. Отключённая не может войти, её сеансы завершаются. */
+export function setAccountActive(id: number, active: boolean): Promise<Account> {
+  return request<Account>(`/api/users/${id}`, jsonInit("PATCH", { is_active: active }));
+}
+
+/** Задать новый пароль учётной записи; все её сеансы завершаются. */
+export function resetAccountPassword(id: number, newPassword: string): Promise<void> {
+  return request<void>(`/api/users/${id}/reset-password`, jsonInit("POST", { new_password: newPassword }));
 }

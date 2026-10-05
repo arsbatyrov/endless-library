@@ -1,5 +1,6 @@
 // Что видит и может каждая роль. Это только удобство интерфейса (не показывать недоступное): настоящую проверку
 // всегда делает сервер, и на запрещённое действие он ответит 403.
+import type { Key } from "./i18n";
 import type { CurrentUser } from "./types";
 
 export type Role = CurrentUser["role"];
@@ -22,3 +23,10 @@ export function sectionsFor(role: Role): readonly Section[] {
 export function canChangeCatalog(role: Role): boolean {
   return role !== "reader";
 }
+
+/** Ключ перевода названия роли. */
+export const ROLE_LABEL: Record<Role, Key> = {
+  reader: "users.role.reader",
+  librarian: "users.role.librarian",
+  admin: "users.role.admin",
+};

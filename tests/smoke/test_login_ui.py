@@ -52,3 +52,13 @@ def test_a_wrong_password_is_refused_on_the_real_site(page, admin_credentials):
     expect(page.get_by_test_id("login-error")).to_have_text(
         re.compile("Invalid username or password")
     )
+
+
+def test_the_users_section_lists_the_first_admin_on_the_real_site(app, admin_credentials):
+    username, _ = admin_credentials
+    app.open()
+
+    app.tab("users").click()
+
+    expect(app.page.get_by_test_id("users-table")).to_contain_text(username)
+    expect(app.page.get_by_test_id("users-add")).to_be_visible()

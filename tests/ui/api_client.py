@@ -53,3 +53,14 @@ class ApiClient:
 
     def active_loans(self, reader_id: int) -> list[dict]:
         return self._client.get(f"/readers/{reader_id}/loans").json()
+
+    def create_account(
+        self, username: str, password: str, role: str = "librarian", reader_id: int | None = None
+    ) -> dict:
+        """Account for a person (AUTH-015). A reader account needs the id of a reader card."""
+        payload = {"username": username, "password": password, "role": role, "reader_id": reader_id}
+        return self._post("/users", payload)
+
+    def set_account_active(self, user_id: int, active: bool) -> None:
+        response = self._client.patch(f"/users/{user_id}", json={"is_active": active})
+        assert response.status_code == 200, response.text

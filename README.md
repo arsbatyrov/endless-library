@@ -77,6 +77,16 @@ The site shows only what the role allows (the server still checks everything and
   (`GET /api/auth/me`): if the role was changed on the server after the page was opened, the sections and buttons adapt.
 - The code: `roles.ts` (the matrix), `section.ts` (the address), `MyLoansPage.tsx`, `UsersPage.tsx`.
 
+**Managing accounts on the site.** The admin works in *Users*: a table (login, role, reader card, status, last
+sign-in) with **Create user**, **Disable / Enable** and **Reset password** per account. A librarian works in *Readers*:
+a card without an account has **Create account** (only the role *reader* is offered, the card is fixed), a card with
+one shows the login and the status with the same Disable/Enable and Reset password buttons (a librarian never sees
+staff accounts). Disabling asks for confirmation (it ends the account's sessions); enabling and creating do not.
+Errors from the server stand under the field they belong to as the server wrote them (a password shorter than 8
+characters, a taken login, a reader without a card), the last active admin cannot be disabled (the server's message is
+shown), and success messages follow the interface language. The code: `AccountForm.tsx`, `AccountActions.tsx`,
+`UsersPage.tsx`, `ReadersPage.tsx`.
+
 ### Interface language (ru / en)
 
 The RU | EN switch in the header changes the language of all interface texts: headings, labels, buttons, messages
@@ -286,7 +296,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-1003 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+1049 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 
@@ -309,8 +319,8 @@ pytest tests/smoke -m smoke --no-cov         # tests of the deployed cluster (af
 | `tests/migrations` | 11 | migrations | apply from scratch, rollback, match with the models | Tests |
 | `tests/concurrency` | 2 | race conditions | simultaneous requests to the same data | Tests |
 | `tests/contract` | 48 | contract | Schemathesis against OpenAPI and the schema snapshot | Contract tests |
-| `tests/ui` | 160 | interface | scenarios in a real browser (Playwright), errors, network failures, signing in and out | UI tests |
-| `tests/smoke` | 29 | deployed system | Ingress, data all the way to the database, resilience (update without losses, database and Redis restart), Prometheus and Grafana | Kubernetes |
+| `tests/ui` | 205 | interface | scenarios in a real browser (Playwright), errors, network failures, signing in and out | UI tests |
+| `tests/smoke` | 30 | deployed system | Ingress, data all the way to the database, resilience (update without losses, database and Redis restart), Prometheus and Grafana | Kubernetes |
 
 Other CI checks: linter and formatting (Lint), types and frontend build (Frontend), image build and a check through
 nginx (Docker images), dependency and image vulnerabilities (Security), code analysis (CodeQL). Code coverage of the
