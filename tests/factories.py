@@ -6,6 +6,7 @@
 
 from itertools import count
 
+from app.auth.passwords import hash_password
 from app.models import Book, Reader, User
 
 _counter = count(1)
@@ -27,14 +28,19 @@ def make_reader(db, name: str = "Test reader") -> Reader:
 
 
 def make_user(
-    db, role: str = "admin", username: str | None = None, reader=None, active: bool = True
+    db,
+    role: str = "admin",
+    username: str | None = None,
+    reader=None,
+    active: bool = True,
+    password: str | None = None,
 ) -> User:
-    """Account for tests. The password hash is a placeholder: hashing is not part of the data-model tests."""
+    """Account for tests. Without `password` the hash is a placeholder (data-model tests); with it, a real argon2id hash."""
     if role == "reader" and reader is None:
         reader = make_reader(db)
     user = User(
         username=username or f"user{next(_counter)}",
-        password_hash="not-a-real-hash",
+        password_hash=hash_password(password) if password is not None else "not-a-real-hash",
         role=role,
         reader_id=reader.id if reader is not None else None,
         is_active=active,

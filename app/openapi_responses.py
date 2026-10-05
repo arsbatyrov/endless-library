@@ -9,6 +9,12 @@ from app.schemas import ErrorResponse, StatusResponse
 BAD_REQUEST = {
     400: {"model": ErrorResponse, "description": "Тело запроса не является корректным JSON"}
 }
+UNAUTHORIZED = {
+    401: {
+        "model": ErrorResponse,
+        "description": "Invalid credentials, or a missing or invalid token",
+    }
+}
 NOT_FOUND = {404: {"model": ErrorResponse, "description": "Объект не найден"}}
 CONFLICT = {
     409: {"model": ErrorResponse, "description": "Нарушено бизнес-правило или уникальность"}
