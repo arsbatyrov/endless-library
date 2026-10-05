@@ -49,6 +49,19 @@ body:
     validations:
       required: true
 
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: "How urgent the business value is. After creating the ticket, add the same priority:* label and set the Priority field on the board. The scale is the same as for bugs (see docs/agent-team/process/bug-triage.md)."
+      options:
+        - Critical
+        - High
+        - Mid
+        - Low
+    validations:
+      required: true
+
   - type: textarea
     id: acceptance
     attributes:
@@ -107,7 +120,7 @@ body:
         - label: Test levels and the required test data are defined
         - label: If the API changes, the contract (OpenAPI) change is described and agreed
         - label: If there is a user interface, the Russian and English texts and the states (loading, empty, error) are defined
-        - label: Severity and priority are set (sev:* labels, P1-P3) and the ticket is on the board
+        - label: Priority is set (the Priority field and the priority:* label) and the ticket is on the board
 
   - type: checkboxes
     id: dod
@@ -125,4 +138,4 @@ body:
         - label: Logs and metrics are added where needed; the dashboard or alert is updated if necessary
         - label: Documentation is updated (README, requirements, examples)
         - label: Verified on the deployed environment (cluster), no regressions found
-        - label: Defects found along the way are filed as bugs (bug) with severity and priority
+        - label: Defects found along the way are filed as bugs (bug) with a priority

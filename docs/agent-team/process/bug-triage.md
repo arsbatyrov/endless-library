@@ -9,10 +9,14 @@ The bug issue template is `.github/ISSUE_TEMPLATE/bug.yml` (the form has a requi
 
 | Priority | Label | Definition | Examples in this project | Fix |
 |---|---|---|---|---|
-| **Critical** | `priority:critical` | The system is unusable, data is lost or corrupted, or a security boundary is broken | A core flow returns 500; a loan is lost or duplicated; data disappears after a restart; an authorization bypass; secrets exposed | Immediately, before anything else |
-| **High** | `priority:high` | A key function is broken and there is no reasonable workaround | Cannot issue or return a book; the book list does not load; a wrong fine is charged; the UI crashes on a main screen | In the current work |
-| **Mid** | `priority:mid` | The function works with flaws, or a workaround exists | Wrong message text; a validation error on the wrong field; a number formatted wrongly; a rare edge case | Planned (current or next work) |
-| **Low** | `priority:low` | Cosmetic or minimal impact | Typo, spacing, a misaligned element, a log wording | When there is time; may stay in the backlog |
+| **Critical** | `priority:critical` | The system is unusable, data is lost or corrupted, or a security boundary is broken | A core flow returns 500; a loan is lost or duplicated; data disappears after a restart; an authorization bypass; secrets exposed | ASAP: drop other work |
+| **High** | `priority:high` | A key function is broken and there is no reasonable workaround | Cannot issue or return a book; the book list does not load; a wrong fine is charged; the UI crashes on a main screen | Within 1 day |
+| **Mid** | `priority:mid` | The function works with flaws, or a workaround exists | Wrong message text; a validation error on the wrong field; a number formatted wrongly; a rare edge case | Within 1 week |
+| **Low** | `priority:low` | Cosmetic or minimal impact | Typo, spacing, a misaligned element, a log wording | Within 2 weeks |
+
+**Target fix times** (from the moment the priority is confirmed): Critical **ASAP**, High **within 1 day**, Mid **within 1 week**,
+Low **within 2 weeks**. A missed target is reported to the owner by the orchestrator; it is a signal to re-plan, not a reason
+to lower the priority.
 
 How to choose, in three questions:
 1. Does it lose or expose data, or break security? **Critical**.
@@ -22,8 +26,8 @@ How to choose, in three questions:
 The owner may raise a priority for business reasons (visible to many users, a demo, a deadline) and may lower it with a
 written reason in the ticket.
 
-> Feature tickets still carry `P1`-`P3` labels and the board field Priority (P1-P3). Bugs use the four `priority:*` labels
-> defined here. Whether to unify both on one scale is an open decision (see the end of this file).
+> The same four levels and labels (`priority:*`) are used for **feature tickets** too (business urgency, set by the owner),
+> and for the board field Priority. There is one scale in the project.
 
 ## Does the bug block the pull request?
 
@@ -76,9 +80,9 @@ Blocking bugs are linked to the ticket under test and send it back to `In progre
 Bugs by priority, by "how found", regression rate, bugs escaped to the deployed environment (found there instead of earlier),
 time from report to fix. These are the numbers a QA lead reports.
 
-## Open points for the owner to decide
+## Decisions made by the owner
 
-1. Are the default blocking rules right (Critical and High block; Mid and Low do not)?
-2. Target fix times, if you want them (for example Critical within the same working session, High within the current work, Mid within a week).
-3. Should the existing `sev:*` labels (not used any more) be deleted?
-4. Should feature tickets move from `P1`-`P3` to the same four levels (Critical, High, Mid, Low), so there is one scale in the project?
+1. Blocking rules: accepted as written (Critical and High block the PR; Mid and Low do not; an acceptance-criterion violation always blocks).
+2. Target fix times: Critical ASAP, High within 1 day, Mid within 1 week, Low within 2 weeks.
+3. The `sev:*` labels were deleted; there is no separate severity.
+4. Feature tickets use the same four priority levels as bugs (`P1`-`P3` were migrated: P1 to High, P2 to Mid, P3 to Low).

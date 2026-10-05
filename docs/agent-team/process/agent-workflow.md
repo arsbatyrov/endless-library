@@ -20,7 +20,7 @@ through the ticket**: its description, structured comments, labels and the board
 | `Done` | Merged and closed | | |
 | `Blocked` | Waiting for a decision or an external action | owner | owner unblocks |
 
-Labels describe the ticket (`feature`, `bug`, `task`, `test`, `P1`-`P3` for features, `priority:critical|high|mid|low` for bugs, `area:*`); **Status says where it is**.
+Labels describe the ticket (`feature`, `bug`, `task`, `test`, `priority:critical|high|mid|low` for features and bugs, `area:*`); **Status says where it is**.
 
 ## Owner gates (nothing proceeds without an explicit yes)
 
