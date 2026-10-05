@@ -13,8 +13,9 @@ _email_counter = count(1)
 
 
 class ApiClient:
-    def __init__(self, base_url: str):
-        self._client = httpx.Client(base_url=base_url, timeout=10)
+    def __init__(self, base_url: str, token: str | None = None):
+        headers = {"Authorization": f"Bearer {token}"} if token else {}
+        self._client = httpx.Client(base_url=base_url, timeout=10, headers=headers)
 
     def close(self) -> None:
         self._client.close()

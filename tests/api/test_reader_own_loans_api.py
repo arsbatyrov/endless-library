@@ -13,12 +13,14 @@ from app.models import Reader
 from app.services import loans as loan_service
 from tests.factories import make_book, make_reader, make_user
 
+
+@pytest.fixture
+def client(anonymous_client):
+    """These tests check sign-in, roles and access errors: they start WITHOUT a login."""
+    return anonymous_client
+
+
 NOW = datetime(2026, 10, 5, 12, 0, tzinfo=UTC)
-
-
-@pytest.fixture(autouse=True)
-def _protection_on(monkeypatch):
-    monkeypatch.setenv("AUTH_REQUIRED", "true")
 
 
 def headers_for(user) -> dict:
@@ -231,12 +233,6 @@ def test_disabled_reader_is_refused_at_once(client, db, card, reader_user):
     db.commit()
 
     assert client.get(f"/readers/{card.id}/loans", headers=headers).status_code == 401
-
-
-def test_with_the_temporary_switch_off_the_endpoint_is_open(client, card, monkeypatch):
-    monkeypatch.setenv("AUTH_REQUIRED", "false")
-
-    assert client.get(f"/readers/{card.id}/loans").status_code == 200
 
 
 def test_reader_card_is_not_created_or_changed_by_reading(client, db, card, reader_user):

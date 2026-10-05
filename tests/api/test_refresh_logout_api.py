@@ -13,6 +13,13 @@ from app.auth.tokens import decode_access_token
 from app.models import RefreshToken
 from tests.factories import make_user
 
+
+@pytest.fixture
+def client(anonymous_client):
+    """These tests check sign-in, roles and access errors: they start WITHOUT a login."""
+    return anonymous_client
+
+
 PASSWORD = "correct horse"
 
 

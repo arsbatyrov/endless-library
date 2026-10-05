@@ -35,9 +35,6 @@ os.environ["REDIS_URL"] = ""
 # The application refuses to start without a strong JWT secret (AUTH-003). Tests always use this fixed, public,
 # test-only value, never a real secret from .env or the environment; subprocesses (UI tests) inherit it.
 os.environ["JWT_SECRET"] = "test-only-secret-not-for-production-0123456789abcdef"
-# Temporary (AUTH-007): the suite runs with the role protection of books/readers/loans switched off, because the web UI,
-# the smoke tests and the contract tests cannot log in yet. tests/api/test_role_protection_api.py turns it on per test.
-os.environ["AUTH_REQUIRED"] = "false"
 REDIS_TEST_URL = os.environ.get("REDIS_TEST_URL", "redis://127.0.0.1:6379/15")
 
 # Импорты приложения только после подмены DATABASE_URL (поэтому E402).
@@ -46,9 +43,11 @@ from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from app import models  # noqa: E402, F401  (регистрирует таблицы в Base)
+from app.auth.tokens import create_access_token  # noqa: E402
 from app.cache import cache  # noqa: E402
 from app.database import Base, get_db  # noqa: E402
 from app.main import app  # noqa: E402
+from tests.factories import make_user  # noqa: E402
 
 # Тесты, использующие любую из этих фикстур (напрямую или через другие), работают с базой.
 DB_FIXTURES = {"engine", "migration_url"}
@@ -105,8 +104,8 @@ def db(engine):
 
 
 @pytest.fixture
-def client(db):
-    """HTTP-клиент, подключённый к приложению, которое работает на тестовой базе `db`."""
+def anonymous_client(db):
+    """HTTP-клиент, подключённый к приложению на тестовой базе `db`, БЕЗ входа (токена нет)."""
 
     def override_get_db():
         yield db
@@ -118,6 +117,19 @@ def client(db):
     yield TestClient(app)
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def client(db, anonymous_client):
+    """Клиент, вошедший как администратор (токен в заголовке каждого запроса).
+
+    Книги, читатели и выдачи закрыты входом, поэтому тесты этих разделов работают от имени админа. Тесты, которые
+    проверяют сам вход, роли и ошибки доступа, переопределяют `client` и берут `anonymous_client` (см. их начало).
+    """
+    admin = make_user(db, role="admin", username="test-admin")
+    token = create_access_token(admin.id, admin.role)
+    anonymous_client.headers["Authorization"] = f"Bearer {token}"
+    return anonymous_client
 
 
 @pytest.fixture

@@ -8,8 +8,7 @@ from app.openapi_responses import BAD_REQUEST, CONFLICT, FORBIDDEN, NOT_FOUND, U
 from app.schemas import PasswordReset, PathId, UserCreate, UserRead, UserUpdate
 from app.services import users as user_service
 
-# Staff only (librarian, admin). Unlike the books/readers/loans routers this one ignores the temporary AUTH_REQUIRED
-# switch: it needs to know who is calling. What each staff role may do with which account is decided in the service.
+# Staff only (librarian, admin). What each staff role may do with which account is decided in the service.
 router = APIRouter(
     prefix="/users",
     tags=["users"],

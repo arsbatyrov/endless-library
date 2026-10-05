@@ -141,3 +141,24 @@ select {
   background: #1b1f24;
   color: #fff;
 }
+
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.user-box button {
+  margin-right: 0;
+}
+
+[data-testid="login-form"] {
+  max-width: 420px;
+}

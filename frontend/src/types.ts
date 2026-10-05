@@ -56,3 +56,11 @@ export interface FormError {
   display: Msg;
   fieldErrors: Record<string, string>;
 }
+
+/** Кто вошёл (ответ GET /api/auth/me). */
+export interface CurrentUser {
+  id: number;
+  username: string;
+  role: "reader" | "librarian" | "admin";
+  reader_id: number | null;
+}

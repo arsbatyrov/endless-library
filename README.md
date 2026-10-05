@@ -41,6 +41,24 @@ npm run dev          # http://localhost:5173 (the API must be running on :8000)
 npm run build        # type check and build
 ```
 
+### Signing in and out
+
+Without a session the site shows only the sign-in page (no library data is requested). After a successful sign-in the
+header shows the login and a **Sign out** button.
+
+- The 15-minute **access token lives only in the memory of the page**: not in `localStorage`, not in `sessionStorage`,
+  not in a readable cookie. The long-lived **refresh token is an `httpOnly` cookie** (path `/api/auth`) that scripts
+  cannot read.
+- A reload signs in silently through `POST /api/auth/refresh` (the browser attaches the cookie). While it runs the page
+  shows "Checking your session...".
+- When a request gets `401` (the token expired), the token is refreshed **once** and the request is repeated; several
+  requests failing at the same moment share one refresh. If it cannot be refreshed, the sign-in page is shown with a
+  note that the session ended.
+- Sign out revokes the refresh token, clears the cookie, forgets the token and shows the sign-in page.
+- Wrong credentials show the server's message as it is (not translated), keep the fields filled and put the focus back
+  into the form. The page is available in Russian and English and works from the keyboard.
+- The code: `frontend/src/auth.ts` (token and session), `api.ts` (the 401 handling), `LoginPage.tsx`.
+
 ### Interface language (ru / en)
 
 The RU | EN switch in the header changes the language of all interface texts: headings, labels, buttons, messages
@@ -102,7 +120,7 @@ The protection **fails open**: if Redis is unavailable or `REDIS_URL` is not set
 lock, a warning is logged and the counter `endless_library_login_guard_failures_total{reason="redis_error|not_configured"}`
 increases. A malformed request (`422`) does not count as a failed attempt.
 
-### Roles and the temporary `AUTH_REQUIRED` switch
+### Roles and permissions
 
 Books, readers and loans demand a login (`Authorization: Bearer <access token>`) and a role:
 
@@ -122,10 +140,8 @@ No or a bad token gives `401` (with `WWW-Authenticate: Bearer`), a role that is 
 `/ready`, `/docs` and `/openapi.json` stay open. A disabled or demoted user is refused at once, because the role and
 the active flag are read from the database on every request.
 
-**Temporary:** the web UI has no sign-in page yet (AUTH-013), so the Docker Compose file, the Kubernetes manifest and
-the UI tests set `AUTH_REQUIRED=false`, which keeps these endpoints open as before. The application's own default is
-`true` (protected); the value is validated at startup (a typo stops the application) and a switched-off start logs a
-`ROLE PROTECTION IS OFF` warning. The switch will be removed together with AUTH-013.
+There is no switch that turns the protection off: it is always on, in every environment. The web site shows a sign-in page
+first; the access token (15 minutes) lives only in the memory of the page, the refresh token in an `httpOnly` cookie.
 
 ## Running in containers
 
@@ -252,7 +268,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-934 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+966 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 
@@ -269,14 +285,14 @@ pytest tests/smoke -m smoke --no-cov         # tests of the deployed cluster (af
 
 | Folder | Tests | Level | What it checks | Where it runs in CI |
 |---|---|---|---|---|
-| `tests/unit` | 137 | unit | service logic, fines, log format, password hashing and policy, JWT tokens and secret configuration | Tests |
-| `tests/api` | 159 | API (in memory) | status codes, format, errors, Redis cache, ranking, metrics, contract regressions | Tests |
+| `tests/unit` | 210 | unit | service logic, fines, log format, password hashing and policy, JWT tokens, the login guard, the command line, deployment files | Tests |
+| `tests/api` | 501 | API (in memory) | status codes, format, errors, Redis cache, ranking, metrics, contract regressions | Tests |
 | `tests/db` | 42 | database | the database's own constraints (uniqueness, foreign keys, account rules), recovery after dropped connections | Tests |
 | `tests/migrations` | 11 | migrations | apply from scratch, rollback, match with the models | Tests |
 | `tests/concurrency` | 2 | race conditions | simultaneous requests to the same data | Tests |
-| `tests/contract` | 18 | contract | Schemathesis against OpenAPI and the schema snapshot | Contract tests |
-| `tests/ui` | 77 | interface | scenarios in a real browser (Playwright), errors, network failures | UI tests |
-| `tests/smoke` | 20 | deployed system | Ingress, data all the way to the database, resilience (update without losses, database and Redis restart), Prometheus and Grafana | Kubernetes |
+| `tests/contract` | 48 | contract | Schemathesis against OpenAPI and the schema snapshot | Contract tests |
+| `tests/ui` | 123 | interface | scenarios in a real browser (Playwright), errors, network failures, signing in and out | UI tests |
+| `tests/smoke` | 29 | deployed system | Ingress, data all the way to the database, resilience (update without losses, database and Redis restart), Prometheus and Grafana | Kubernetes |
 
 Other CI checks: linter and formatting (Lint), types and frontend build (Frontend), image build and a check through
 nginx (Docker images), dependency and image vulnerabilities (Security), code analysis (CodeQL). Code coverage of the
@@ -288,6 +304,11 @@ Requirements: a running database, Node.js and `npm ci` in `frontend`, and the Ch
 (`python -m playwright install chromium`). The tests start the API (port 8100) and the frontend (port 5180) on a
 separate database `<name>_e2e_test` themselves and stop them at the end (ports can be changed with the
 `UI_API_PORT` and `UI_WEB_PORT` variables). Data is prepared through the API; checks go through the interface.
+
+Every UI test starts **already signed in** as an administrator created in that database: the refresh cookie is put
+into the browser as the server issues it, and the page restores the session silently (no clicking through the sign-in
+page, no token in the test code). Data is prepared through the API with the administrator's token. Tests marked
+`@pytest.mark.anonymous` (`tests/ui/test_login.py`) start without a session and go through the sign-in page.
 
 Structure: `tests/ui/pages` (Page Objects: locators and actions), `tests/ui/test_*.py` (scenarios),
 `tests/ui/network.py` (network control), `tests/ui/api_client.py` (data preparation).

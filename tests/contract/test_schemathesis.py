@@ -67,23 +67,17 @@ def isolated_app(engine):
         with factory() as session:
             yield session
 
-    # The contract is checked WITH the protection on and as an administrator, so Schemathesis also verifies that a request
-    # without a token is rejected (the OpenAPI schema declares the bearer scheme).
+    # The contract is checked as an administrator, so Schemathesis also verifies that a request without a token is
+    # rejected (the OpenAPI schema declares the bearer scheme).
     with factory() as session:
         admin = User(username="contract-admin", password_hash="not-a-real-hash", role="admin")
         session.add(admin)
         session.commit()
         AUTH["token"] = create_access_token(admin.id, admin.role)
 
-    previous = os.environ.get("AUTH_REQUIRED")
-    os.environ["AUTH_REQUIRED"] = "true"
     app.dependency_overrides[get_db] = override
     yield
     app.dependency_overrides.clear()
-    if previous is None:
-        os.environ.pop("AUTH_REQUIRED", None)
-    else:
-        os.environ["AUTH_REQUIRED"] = previous
 
 
 EXPLORE = int(os.getenv("SCHEMATHESIS_EXPLORE", "0"))
