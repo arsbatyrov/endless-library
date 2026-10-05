@@ -77,6 +77,11 @@ export function getReaders(signal?: AbortSignal): Promise<Reader[]> {
   return request<Reader[]>("/api/readers", { signal });
 }
 
+/** Одна карточка читателя. Читателю сервер отдаёт только его собственную (чужая: 403). */
+export function getReader(id: number, signal?: AbortSignal): Promise<Reader> {
+  return request<Reader>(`/api/readers/${id}`, { signal });
+}
+
 export function createReader(input: ReaderInput): Promise<Reader> {
   return request<Reader>("/api/readers", jsonInit("POST", input));
 }

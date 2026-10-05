@@ -166,8 +166,12 @@ def test_reader_may_read_the_catalogue(client, db, case):
     assert response.status_code not in (401, 403)
 
 
-# GET /readers/{id}/loans is the one exception: a reader may open the loans of their OWN card (AUTH-008).
-NOT_FOR_READERS = [case for case in STAFF_ONLY if case[1] != "/readers/1/loans"]
+# The exceptions: a reader may open their OWN card and its loans (AUTH-008, AUTH-019). The test reader owns card 1.
+NOT_FOR_READERS = [
+    case
+    for case in STAFF_ONLY
+    if case[:2] not in (("GET", "/readers/1"), ("GET", "/readers/1/loans"))
+]
 
 
 @pytest.mark.parametrize("case", NOT_FOR_READERS, ids=ident)

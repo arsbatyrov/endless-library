@@ -112,6 +112,8 @@ const ru = {
   "loans.returned": "Книга «{title}» возвращена. Штраф: {fine}",
   "loans.unknownBook": "книга №{id}",
   "loans.mineEmpty": "У вас нет книг на руках",
+  "myCard.heading": "Моя карточка",
+  "myCard.loadError": "Не удалось загрузить карточку: {message}",
   "loans.noCard": "К вашей учётной записи не привязана карточка читателя. Обратитесь к библиотекарю.",
 
   "users.heading": "Пользователи",
@@ -265,6 +267,8 @@ const en: Record<Key, string> = {
   "loans.returned": "Book “{title}” returned. Fine: {fine}",
   "loans.unknownBook": "book #{id}",
   "loans.mineEmpty": "You have no books on loan",
+  "myCard.heading": "My card",
+  "myCard.loadError": "Could not load your card: {message}",
   "loans.noCard": "No reader card is linked to your account. Please ask a librarian.",
 
   "users.heading": "Users",

@@ -135,7 +135,6 @@ READER_FORBIDDEN = [
     ("PUT", "/books/{book}", BOOK),
     ("DELETE", "/books/{book}", None),
     ("GET", "/readers", None),
-    ("GET", "/readers/{self_card}", None),
     ("POST", "/readers", READER_BODY),
     ("PUT", "/readers/{self_card}", READER_BODY),
     ("DELETE", "/readers/{self_card}", None),
@@ -183,6 +182,18 @@ def test_a_reader_cannot_promote_themselves_in_any_way(client, db, reader_accoun
     db.expire_all()
     assert reader_account.role == "reader"
     assert [a.status_code for a in attempts][:2] == [403, 403]
+
+
+def test_a_reader_may_open_their_own_card_but_never_another(
+    client, db, reader_account, other_reader_card
+):
+    headers = auth(reader_account)
+
+    own = client.get(f"/readers/{reader_account.reader_id}", headers=headers)
+    other = client.get(f"/readers/{other_reader_card.id}", headers=headers)
+
+    assert own.status_code == 200 and own.json()["id"] == reader_account.reader_id
+    assert other.status_code == 403 and "Somebody else" not in other.text
 
 
 def test_the_catalogue_reads_remain_open_to_a_reader(client, db, reader_account):
