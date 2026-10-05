@@ -64,6 +64,17 @@ Login tokens (JWT) are signed with a secret that the application **requires at s
 - Tests use a fixed test-only value that `tests/conftest.py` sets; a real secret is never used by tests.
 - Replacing the secret logs everybody out: every issued token becomes invalid.
 
+### Brute-force protection of the login
+
+Five failed logins in a row for one login (counted over 15 minutes, ignoring case) lock that login for 15 minutes: the
+next attempt gets `429` with a `Retry-After` header, even with the right password. A successful login resets the
+count. The rule is per login, not per IP address, and is identical for logins that do not exist, so the answer never
+reveals which logins exist. The counter lives in Redis (key = hash of the login, so no login is stored there).
+
+The protection **fails open**: if Redis is unavailable or `REDIS_URL` is not set, signing in keeps working without the
+lock, a warning is logged and the counter `endless_library_login_guard_failures_total{reason="redis_error|not_configured"}`
+increases. A malformed request (`422`) does not count as a failed attempt.
+
 ### Roles and the temporary `AUTH_REQUIRED` switch
 
 Books, readers and loans demand a login (`Authorization: Bearer <access token>`) and a role:
@@ -210,7 +221,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-812 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+859 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 

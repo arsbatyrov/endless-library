@@ -28,6 +28,11 @@ CACHE_REQUESTS = Counter(
     "Redis cache lookups by result: hit, miss or error (Redis unavailable)",
     ["result"],
 )
+LOGIN_GUARD_FAILURES = Counter(
+    "endless_library_login_guard_failures_total",
+    "Times the brute-force protection of the login could not work (it fails open): redis_error or not_configured",
+    ["reason"],
+)
 LOANS_ISSUED = Counter("endless_library_loans_issued_total", "Books issued to readers")
 LOANS_RETURNED = Counter("endless_library_loans_returned_total", "Books returned by readers")
 FINES_CHARGED = Counter(
