@@ -73,6 +73,8 @@ def pytest_collection_modifyitems(items):
             item.add_marker(pytest.mark.smoke)
         if "contract" in parts:
             item.add_marker(pytest.mark.contract)
+        if "security" in parts:
+            item.add_marker(pytest.mark.security)
 
 
 @pytest.fixture(scope="session")

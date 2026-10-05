@@ -329,6 +329,7 @@ pytest tests/smoke -m smoke --no-cov         # tests of the deployed cluster (af
 | `tests/db` | 42 | database | the database's own constraints (uniqueness, foreign keys, account rules), recovery after dropped connections | Tests |
 | `tests/migrations` | 11 | migrations | apply from scratch, rollback, match with the models | Tests |
 | `tests/concurrency` | 2 | race conditions | simultaneous requests to the same data | Tests |
+| `tests/security` | 239 | security (negative) | forged and expired tokens, rights escalation, theft of a refresh token, cross-origin requests, indistinguishable sign-in failures, hostile input, secrets in responses and logs | Tests |
 | `tests/contract` | 48 | contract | Schemathesis against OpenAPI and the schema snapshot | Contract tests |
 | `tests/ui` | 205 | interface | scenarios in a real browser (Playwright), errors, network failures, signing in and out | UI tests |
 | `tests/smoke` | 32 | deployed system | Ingress, data all the way to the database, resilience (update without losses, database and Redis restart), Prometheus and Grafana | Kubernetes |
@@ -336,6 +337,34 @@ pytest tests/smoke -m smoke --no-cov         # tests of the deployed cluster (af
 Other CI checks: linter and formatting (Lint), types and frontend build (Frontend), image build and a check through
 nginx (Docker images), dependency and image vulnerabilities (Security), code analysis (CodeQL). Code coverage of the
 main suite is about 97% (threshold 95%).
+
+### Security tests
+
+`tests/security` (marker `security`: `pytest -m security --no-cov`) is the attacker's view of the sign-in system:
+automatic negative checks, written once and run on every change. They start without a login and try to break things.
+
+- **Tokens** (`test_token_tampering.py`): about 50 forged, altered, unsigned (`alg: none` in every spelling),
+  other-algorithm, other-key, expired and damaged access tokens are tried against **every protected operation** (the
+  list comes from the OpenAPI schema, so a new endpoint that forgets the check is caught): always exactly `401`, never
+  an accepted request and never a crash; also tokens in a query string, a cookie or a custom header.
+- **Rights** (`test_privilege_escalation.py`): a reader asking for other cards' loans (id substitution and path tricks),
+  creating accounts, changing roles (their own too) or books; a librarian creating staff, sending a higher role or extra
+  fields (also duplicate JSON keys) while creating a reader, touching staff accounts: refused, the role is never raised.
+- **Sessions** (`test_session_security.py`): reuse of a replaced refresh token ends every session of that user (and
+  nobody else's); the cookie is `HttpOnly`, `SameSite=Lax`, scoped to its path, `Secure` behind HTTPS; **refresh and
+  logout from another origin are refused and change nothing** (see below); responses with tokens are never cached.
+- **Sign-in** (`test_login_hardening.py`): a wrong password, an unknown login and a disabled account give identical
+  status, body, headers and, within a tolerance, time; about 35 injection payloads (SQL, LDAP, template, header
+  injection, homoglyphs), mistyped, malformed and oversized bodies, wrong verbs, CORS. One test documents a **known
+  limitation**: an already issued access token stays valid for up to 15 minutes after logout (refresh is revoked at once).
+- **Secrets** (`test_secret_exposure.py`): a whole session runs while every response and every log line is collected,
+  then every password, hash, token and the JWT secret is searched for everywhere.
+
+**Cross-origin protection.** `/auth/refresh` and `/auth/logout` are authenticated by a cookie, which a browser attaches to
+any request to our address. Besides `SameSite=Lax`, the server itself refuses a browser request that is not from its own
+pages (`app/auth/origin.py`): `Sec-Fetch-Site` must be `same-origin` or `none`; without it, the host of `Origin` must be
+the host the request was addressed to (`X-Forwarded-Host` behind the proxy). Requests with neither header (curl, tests,
+a mobile app) are not browser pages and pass. Everything under `/auth/` is sent with `Cache-Control: no-store`.
 
 ### UI tests
 
