@@ -97,17 +97,48 @@ def create_account(db: Session, data: UserCreate) -> User:
     return user
 
 
+def _card_has_account(db: Session, card_id: int) -> bool:
+    return db.scalar(select(User.id).where(User.reader_id == card_id)) is not None
+
+
 def update_user(db: Session, actor: User, user_id: int, data: UserUpdate) -> User:
+    """Disable or enable an account and (admins only) change its role to any role.
+
+    A reader account is tied to a reader card: becoming a reader needs a free card, leaving the reader role removes the
+    link (the card itself stays). A librarian may only disable or enable reader accounts and may not send a role or a card.
+    """
     target = _get_user(db, user_id)
-    if actor.role != "admin" and (data.role is not None or not _may_manage(actor, target.role)):
+    if actor.role != "admin" and (
+        data.role is not None or data.reader_id is not None or not _may_manage(actor, target.role)
+    ):
         raise PermissionDeniedError(FORBIDDEN_FOR_ROLE)
-    # A reader account stays a reader and staff never becomes a reader: the link to the reader card is part of the
-    # account's identity (create a new account instead).
-    if data.role is not None and (target.role == "reader" or data.role == "reader"):
-        raise UnprocessableError("role", "The role of a reader account cannot be changed")
 
     new_role = data.role if data.role is not None else target.role
     new_active = data.is_active if data.is_active is not None else target.is_active
+    new_card = target.reader_id
+    if new_role == "reader":
+        if target.role == "reader":
+            if data.reader_id is not None and data.reader_id != target.reader_id:
+                raise UnprocessableError(
+                    "reader_id",
+                    "A reader account stays linked to its card; create a new account for another card",
+                )
+        else:
+            if data.reader_id is None:
+                raise UnprocessableError(
+                    "reader_id", "A reader account must be linked to a reader card"
+                )
+            if db.get(Reader, data.reader_id) is None:
+                raise NotFoundError("Reader not found")
+            if _card_has_account(db, data.reader_id):
+                raise BusinessRuleError("This reader card already has an account")
+            new_card = data.reader_id
+    else:
+        if data.reader_id is not None:
+            raise UnprocessableError(
+                "reader_id", "Only reader accounts are linked to a reader card"
+            )
+        new_card = None
 
     # The system must never be left without an active administrator. The rows are locked so that two admins
     # disabling each other at the same moment cannot both succeed.
@@ -123,12 +154,18 @@ def update_user(db: Session, actor: User, user_id: int, data: UserUpdate) -> Use
 
     was_active = target.is_active
     target.role = new_role
+    target.reader_id = new_card
     target.is_active = new_active
     if was_active and not new_active:
         revoke_all_refresh_tokens(
             db, target.id, commit=False
         )  # a disabled account cannot keep sessions
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Somebody linked the same card between our check and the save: the database's unique index decided.
+        db.rollback()
+        raise BusinessRuleError("This reader card was just given to another account") from None
     db.refresh(target)
     return target
 

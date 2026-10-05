@@ -79,6 +79,8 @@ export function UsersPage() {
               <td className="row-actions">
                 <AccountActions
                   account={user}
+                  canChangeRole
+                  freeCards={freeCards}
                   onDone={(message) => {
                     setNotice(message);
                     setActionError(null);

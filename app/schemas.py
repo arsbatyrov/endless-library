@@ -151,11 +151,13 @@ class UserUpdate(BaseModel):
     # `= Field(default=None)` without `| None`: the field may be omitted, but an explicit null is refused.
     is_active: bool = Field(default=None)
     role: Role = Field(default=None)
+    # Needed when an account becomes a reader (the card to link); refused for the other roles. Admins only.
+    reader_id: EntityId = Field(default=None)
 
     @model_validator(mode="after")
     def at_least_one_field(self):
         if not self.model_fields_set:
-            raise ValueError("Send at least one of: is_active, role")
+            raise ValueError("Send at least one of: is_active, role, reader_id")
         return self
 
 

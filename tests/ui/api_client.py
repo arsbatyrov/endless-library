@@ -61,6 +61,9 @@ class ApiClient:
         payload = {"username": username, "password": password, "role": role, "reader_id": reader_id}
         return self._post("/users", payload)
 
+    def accounts(self) -> list[dict]:
+        return self._client.get("/users").json()
+
     def set_account_active(self, user_id: int, active: bool) -> None:
         response = self._client.patch(f"/users/{user_id}", json={"is_active": active})
         assert response.status_code == 200, response.text

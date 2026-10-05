@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { AccountActions } from "./AccountActions";
+import { useSession } from "./auth";
 import { AccountForm } from "./AccountForm";
 import { actionErrorMsg, deleteReader, getReaders, getUsers, loadErrorMsg } from "./api";
 import { type Msg, msg, useI18n } from "./i18n";
@@ -17,6 +18,7 @@ type FormMode = { kind: "closed" } | { kind: "create" } | { kind: "edit"; reader
 // Экран устроен так же, как экран книг (см. BooksPage): загрузка / ошибка / данные, форма и удаление с подтверждением.
 export function ReadersPage() {
   const { t, show } = useI18n();
+  const session = useSession();
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [mode, setMode] = useState<FormMode>({ kind: "closed" });
@@ -95,6 +97,8 @@ export function ReadersPage() {
         </span>{" "}
         <AccountActions
           account={account}
+          canChangeRole={session.status === "authenticated" && session.user.role === "admin"}
+          freeCards={state.readers.filter((card) => !state.accounts.some((item) => item.reader_id === card.id))}
           onDone={(message) => {
             setNotice(message);
             setActionError(null);
