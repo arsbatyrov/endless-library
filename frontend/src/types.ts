@@ -64,3 +64,14 @@ export interface CurrentUser {
   role: "reader" | "librarian" | "admin";
   reader_id: number | null;
 }
+
+/** Учётная запись в списке пользователей (GET /api/users, см. UserRead в app/schemas.py). Хеша пароля тут нет. */
+export interface Account {
+  id: number;
+  username: string;
+  role: CurrentUser["role"];
+  reader_id: number | null;
+  is_active: boolean;
+  created_at: string;
+  last_login_at: string | null;
+}

@@ -1,6 +1,6 @@
 import { toApiError } from "./apiError";
-import { getAccessToken, refreshAccessToken, sessionExpired } from "./auth";
-import type { Book, BookInput, Loan, LoanReturn, PopularBook, Reader, ReaderInput } from "./types";
+import { getAccessToken, refreshAccessToken, refreshProfile, sessionExpired } from "./auth";
+import type { Account, Book, BookInput, Loan, LoanReturn, PopularBook, Reader, ReaderInput } from "./types";
 
 export { ApiError, actionErrorMsg, loadErrorMsg } from "./apiError";
 
@@ -19,6 +19,11 @@ async function request<T>(path: string, init?: RequestInit, retried = false): Pr
     }
     // Обновить нельзя (или новый токен тоже отвергнут): сеанс закончился, показываем страницу входа.
     sessionExpired();
+  }
+  if (response.status === 403) {
+    // Сервер отказал по роли: возможно, права изменили после входа. Перечитываем профиль, чтобы интерфейс
+    // подстроился (лишние разделы и кнопки исчезнут), и показываем сообщение сервера как есть.
+    await refreshProfile();
   }
   if (!response.ok) {
     throw await toApiError(response);
@@ -85,4 +90,9 @@ export function issueBook(bookId: number, readerId: number): Promise<Loan> {
 
 export function returnBook(loanId: number): Promise<LoanReturn> {
   return request<LoanReturn>(`/api/loans/${loanId}/return`, { method: "POST" });
+}
+
+/** Учётные записи (для админа: все; библиотекарю сервер отдаёт только читателей). */
+export function getUsers(signal?: AbortSignal): Promise<Account[]> {
+  return request<Account[]>("/api/users", { signal });
 }
