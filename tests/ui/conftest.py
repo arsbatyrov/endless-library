@@ -212,17 +212,40 @@ def admin_account(ui_stack, clean_database):
         session.commit()
 
 
-@pytest.fixture
-def admin_login(ui_stack, admin_account):
-    """Signs the administrator in through the API: returns the access token and the refresh cookie value."""
+def _sign_in(api_url: str, username: str, password: str) -> tuple[str, str]:
+    """Signs in through the API: the access token and the refresh cookie value."""
     response = httpx.post(
-        f"{ui_stack.api_url}/auth/login",
-        json={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD},
-        timeout=10,
+        f"{api_url}/auth/login", json={"username": username, "password": password}, timeout=10
     )
     assert response.status_code == 200, response.text
     cookie = response.headers["set-cookie"].split(";")[0].split("=", 1)[1]
     return response.json()["access_token"], cookie
+
+
+def _put_refresh_cookie(context, value: str) -> None:
+    """Puts the refresh cookie into the browser as the server issues it (httpOnly, path /api/auth).
+
+    domain and path are explicit: a "url" would make Playwright derive the path "/api/" (default-path rule), a second
+    cookie next to the server's own (path /api/auth) that would be sent too and looks like token reuse.
+    """
+    context.add_cookies(
+        [
+            {
+                "name": "refresh_token",
+                "value": value,
+                "domain": "127.0.0.1",
+                "path": "/api/auth",
+                "httpOnly": True,
+                "sameSite": "Lax",
+            }
+        ]
+    )
+
+
+@pytest.fixture
+def admin_login(ui_stack, admin_account):
+    """Signs the administrator in through the API: returns the access token and the refresh cookie value."""
+    return _sign_in(ui_stack.api_url, ADMIN_USERNAME, ADMIN_PASSWORD)
 
 
 @pytest.fixture
@@ -233,28 +256,50 @@ def api(ui_stack, admin_login):
 
 
 @pytest.fixture(autouse=True)
-def browser_session(request, context, ui_stack, admin_login):
+def browser_session(request, context, admin_login):
     """Every UI test starts signed in, without clicking through the sign-in page.
 
-    The refresh cookie is put into the browser exactly as the server issued it (httpOnly, path /api/auth); the page
-    then restores the session silently, as it does after a reload. Tests marked `anonymous` start without it.
+    The page restores the session silently from the refresh cookie, as it does after a reload. Tests marked
+    `anonymous` start without it.
     """
     if request.node.get_closest_marker("anonymous"):
         return
-    context.add_cookies(
-        [
-            {
-                "name": "refresh_token",
-                "value": admin_login[1],
-                # domain and path explicitly: a "url" would make Playwright derive the path "/api/" (default-path rule),
-                # a second cookie next to the server's own (path /api/auth) that would be sent too and looks like token reuse
-                "domain": "127.0.0.1",
-                "path": "/api/auth",
-                "httpOnly": True,
-                "sameSite": "Lax",
-            }
-        ]
-    )
+    _put_refresh_cookie(context, admin_login[1])
+
+
+@pytest.fixture
+def as_role(ui_stack, context, api):
+    """Signs in as an account of the given role (AUTH-014). Returns its id, login, password and reader card.
+
+    `admin` is the account every test already has; `librarian` and `reader` are created (a reader gets a reader card
+    and is linked to it). With `inject_cookie=False` nothing is put into the browser: the test signs in on the page.
+    """
+
+    def switch(role: str, inject_cookie: bool = True) -> dict:
+        reader_id = None
+        if role == "admin":
+            username, password = ADMIN_USERNAME, ADMIN_PASSWORD
+            with Session(ui_stack.engine) as session:
+                user_id = session.query(User).filter_by(username=ADMIN_USERNAME).one().id
+        else:
+            if role == "reader":
+                reader_id = api.create_reader(name="Читатель E2E")["id"]
+            username, password = f"e2e-{role}", f"{role} password 123"
+            with Session(ui_stack.engine) as session:
+                user = User(
+                    username=username,
+                    password_hash=hash_password(password),
+                    role=role,
+                    reader_id=reader_id,
+                )
+                session.add(user)
+                session.commit()
+                user_id = user.id
+        if inject_cookie:
+            _put_refresh_cookie(context, _sign_in(ui_stack.api_url, username, password)[1])
+        return {"id": user_id, "username": username, "password": password, "reader_id": reader_id}
+
+    return switch
 
 
 @pytest.fixture

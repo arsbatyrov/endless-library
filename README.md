@@ -59,6 +59,24 @@ header shows the login and a **Sign out** button.
   into the form. The page is available in Russian and English and works from the keyboard.
 - The code: `frontend/src/auth.ts` (token and session), `api.ts` (the 401 handling), `LoginPage.tsx`.
 
+### The interface by role
+
+The site shows only what the role allows (the server still checks everything and answers `403` to a forbidden action):
+
+| Role | Sections | In the catalogue |
+|---|---|---|
+| reader | Books (with the ranking), Loans (**only their own** books, read only) | read only: no add, edit or delete buttons |
+| librarian | Books, Readers, Loans (issue and return) | full |
+| admin | Books, Readers, Loans, **Users** (the list of accounts) | full |
+
+- A section is in the address (`/#books`, `/#readers`, `/#loans`, `/#users`): it can be opened by a link, survives a
+  reload, and the Back button returns to the previous section. Asking for a section the role does not have (a reader
+  opening `/#readers`) shows an allowed section and rewrites the address; the page of the forbidden section is never
+  created, so **no request to the API is made for it**. A deep link survives signing in.
+- When the server answers `403`, its message is shown as it is, the interface keeps working, and the profile is re-read
+  (`GET /api/auth/me`): if the role was changed on the server after the page was opened, the sections and buttons adapt.
+- The code: `roles.ts` (the matrix), `section.ts` (the address), `MyLoansPage.tsx`, `UsersPage.tsx`.
+
 ### Interface language (ru / en)
 
 The RU | EN switch in the header changes the language of all interface texts: headings, labels, buttons, messages
@@ -268,7 +286,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-966 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+1003 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 
@@ -291,7 +309,7 @@ pytest tests/smoke -m smoke --no-cov         # tests of the deployed cluster (af
 | `tests/migrations` | 11 | migrations | apply from scratch, rollback, match with the models | Tests |
 | `tests/concurrency` | 2 | race conditions | simultaneous requests to the same data | Tests |
 | `tests/contract` | 48 | contract | Schemathesis against OpenAPI and the schema snapshot | Contract tests |
-| `tests/ui` | 123 | interface | scenarios in a real browser (Playwright), errors, network failures, signing in and out | UI tests |
+| `tests/ui` | 160 | interface | scenarios in a real browser (Playwright), errors, network failures, signing in and out | UI tests |
 | `tests/smoke` | 29 | deployed system | Ingress, data all the way to the database, resilience (update without losses, database and Redis restart), Prometheus and Grafana | Kubernetes |
 
 Other CI checks: linter and formatting (Lint), types and frontend build (Frontend), image build and a check through

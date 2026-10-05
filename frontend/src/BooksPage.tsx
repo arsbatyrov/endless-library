@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 
 import { actionErrorMsg, deleteBook, getBooks, loadErrorMsg } from "./api";
+import { useSession } from "./auth";
 import { BookForm } from "./BookForm";
 import { type Msg, msg, useI18n } from "./i18n";
 import { PopularBooks } from "./PopularBooks";
+import { canChangeCatalog } from "./roles";
 import type { Book } from "./types";
 
 // Загрузка списка: ровно одно из трёх состояний.
@@ -18,6 +20,9 @@ type FormMode = { kind: "closed" } | { kind: "create" } | { kind: "edit"; book: 
 export function BooksPage() {
   // t и show зависят от выбранного языка; useI18n перерисовывает компонент при его смене.
   const { t, show } = useI18n();
+  const session = useSession();
+  // Читатель только читает каталог: кнопок добавления, изменения и удаления у него нет (сервер всё равно ответил бы 403).
+  const canChange = session.status === "authenticated" && canChangeCatalog(session.user.role);
   const [state, setState] = useState<State>({ status: "loading" });
   // Увеличиваем число, чтобы перечитать список (после действий и по кнопке «Повторить»).
   const [attempt, setAttempt] = useState(0);
@@ -97,7 +102,7 @@ export function BooksPage() {
             <th>{t("books.col.author")}</th>
             <th>{t("books.col.year")}</th>
             <th>{t("books.col.inStock")}</th>
-            <th>{t("common.actions")}</th>
+            {canChange && <th>{t("common.actions")}</th>}
           </tr>
         </thead>
         <tbody>
@@ -107,46 +112,48 @@ export function BooksPage() {
               <td data-testid="book-author">{book.author}</td>
               <td data-testid="book-year">{book.year ?? "—"}</td>
               <td data-testid="book-copies">{book.copies_available}</td>
-              <td className="row-actions">
-                {confirmingId === book.id ? (
-                  <>
-                    <span>{t("books.deleteQuestion", { title: book.title })}</span>
-                    <button type="button" data-testid="book-delete-confirm" onClick={() => handleDelete(book)}>
-                      {t("common.confirmDelete")}
-                    </button>
-                    <button type="button" data-testid="book-delete-cancel" onClick={() => setConfirmingId(null)}>
-                      {t("common.cancel")}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      data-testid="book-edit"
-                      aria-label={t("books.editAria", { title: book.title })}
-                      onClick={() => {
-                        setNotice(null);
-                        setActionError(null);
-                        setMode({ kind: "edit", book });
-                      }}
-                    >
-                      {t("common.edit")}
-                    </button>
-                    <button
-                      type="button"
-                      data-testid="book-delete"
-                      aria-label={t("books.deleteAria", { title: book.title })}
-                      onClick={() => {
-                        setNotice(null);
-                        setActionError(null);
-                        setConfirmingId(book.id);
-                      }}
-                    >
-                      {t("common.delete")}
-                    </button>
-                  </>
-                )}
-              </td>
+              {canChange && (
+                <td className="row-actions">
+                  {confirmingId === book.id ? (
+                    <>
+                      <span>{t("books.deleteQuestion", { title: book.title })}</span>
+                      <button type="button" data-testid="book-delete-confirm" onClick={() => handleDelete(book)}>
+                        {t("common.confirmDelete")}
+                      </button>
+                      <button type="button" data-testid="book-delete-cancel" onClick={() => setConfirmingId(null)}>
+                        {t("common.cancel")}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        data-testid="book-edit"
+                        aria-label={t("books.editAria", { title: book.title })}
+                        onClick={() => {
+                          setNotice(null);
+                          setActionError(null);
+                          setMode({ kind: "edit", book });
+                        }}
+                      >
+                        {t("common.edit")}
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="book-delete"
+                        aria-label={t("books.deleteAria", { title: book.title })}
+                        onClick={() => {
+                          setNotice(null);
+                          setActionError(null);
+                          setConfirmingId(book.id);
+                        }}
+                      >
+                        {t("common.delete")}
+                      </button>
+                    </>
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -158,20 +165,22 @@ export function BooksPage() {
     <section>
       <h2>{t("books.heading")}</h2>
 
-      <div className="toolbar">
-        <button
-          type="button"
-          data-testid="books-add"
-          disabled={mode.kind !== "closed"}
-          onClick={() => {
-            setNotice(null);
-            setActionError(null);
-            setMode({ kind: "create" });
-          }}
-        >
-          {t("books.add")}
-        </button>
-      </div>
+      {canChange && (
+        <div className="toolbar">
+          <button
+            type="button"
+            data-testid="books-add"
+            disabled={mode.kind !== "closed"}
+            onClick={() => {
+              setNotice(null);
+              setActionError(null);
+              setMode({ kind: "create" });
+            }}
+          >
+            {t("books.add")}
+          </button>
+        </div>
+      )}
 
       {notice && (
         <p role="status" className="notice" data-testid="books-notice">
@@ -184,7 +193,7 @@ export function BooksPage() {
         </p>
       )}
 
-      {mode.kind !== "closed" && (
+      {canChange && mode.kind !== "closed" && (
         // key заставляет React создать форму заново при переходе между книгами (сброс введённых значений)
         <BookForm
           key={mode.kind === "edit" ? mode.book.id : "new"}

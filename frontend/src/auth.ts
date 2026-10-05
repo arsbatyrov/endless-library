@@ -9,6 +9,7 @@
 import { useSyncExternalStore } from "react";
 
 import { toApiError } from "./apiError";
+import { replaceSection } from "./section";
 import type { CurrentUser } from "./types";
 
 export type Session =
@@ -70,6 +71,31 @@ export async function login(username: string, password: string): Promise<void> {
   setSession({ status: "authenticated", user });
 }
 
+let reloadingProfile: Promise<void> | null = null;
+
+/**
+ * Перечитывает «кто я» у сервера. Вызывается, когда сервер ответил 403: возможно, роль изменили уже после входа, и
+ * интерфейс должен показывать то, что роль разрешает СЕЙЧАС (разделы, кнопки). Одновременные вызовы делят один запрос.
+ */
+export function refreshProfile(): Promise<void> {
+  reloadingProfile ??= (async () => {
+    try {
+      if (session.status === "authenticated" && accessToken) {
+        const user = await fetchMe(accessToken);
+        const current = session.user;
+        if (user.role !== current.role || user.reader_id !== current.reader_id) {
+          setSession({ status: "authenticated", user });
+        }
+      }
+    } catch {
+      // нет связи или токен отвергнут: прежний профиль остаётся, а 401 обработает общий механизм
+    } finally {
+      reloadingProfile = null;
+    }
+  })();
+  return reloadingProfile;
+}
+
 let refreshing: Promise<boolean> | null = null;
 
 /**
@@ -121,6 +147,8 @@ export function sessionExpired(): void {
 /** Выход: сервер отзывает токен обновления и очищает cookie; токен доступа забываем сразу. */
 export async function logout(): Promise<void> {
   accessToken = null;
+  // Следующий вход начинается с раздела «Книги», а не с раздела прошлого пользователя.
+  replaceSection("books");
   setSession({ status: "anonymous", expired: false });
   try {
     await fetch("/api/auth/logout", { method: "POST" });
