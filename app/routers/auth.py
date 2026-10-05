@@ -12,6 +12,7 @@ from app.auth.events import (
     record_refresh,
 )
 from app.auth.login_guard import login_guard
+from app.auth.origin import require_same_origin
 from app.auth.passwords import (
     PasswordPolicyError,
     hash_password,
@@ -145,7 +146,15 @@ _CLEARS_COOKIE = {
     }
 }
 
+_CROSS_ORIGIN = {
+    403: {
+        "model": ErrorResponse,
+        "description": "The request came from another origin (a browser page of another site): nothing was changed",
+    }
+}
+
 _REFRESH_RESPONSES = {
+    **_CROSS_ORIGIN,
     401: {**UNAUTHORIZED[401], "headers": _CLEARS_COOKIE},
     200: {
         "description": "New access token in the body; the refresh token is replaced (rotation) via Set-Cookie.",
@@ -156,7 +165,12 @@ _REFRESH_RESPONSES = {
 }
 
 
-@router.post("/refresh", response_model=LoginResponse, responses=_REFRESH_RESPONSES)
+@router.post(
+    "/refresh",
+    response_model=LoginResponse,
+    responses=_REFRESH_RESPONSES,
+    dependencies=[Depends(require_same_origin)],
+)
 def refresh(
     request: Request,
     response: Response,
@@ -187,8 +201,10 @@ def refresh(
     status_code=status.HTTP_204_NO_CONTENT,
     response_class=Response,
     responses={
-        204: {"description": "Signed out; the cookie is cleared.", "headers": _CLEARS_COOKIE}
+        **_CROSS_ORIGIN,
+        204: {"description": "Signed out; the cookie is cleared.", "headers": _CLEARS_COOKIE},
     },
+    dependencies=[Depends(require_same_origin)],
 )
 def logout(
     request: Request,

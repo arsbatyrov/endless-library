@@ -758,6 +758,16 @@
               }
             }
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "The request came from another origin (a browser page of another site): nothing was changed"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -937,6 +947,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "The request came from another origin (a browser page of another site): nothing was changed"
           },
           "422": {
             "content": {

@@ -25,6 +25,7 @@ from app.auth.config import load_jwt_secret
 from app.models import User
 
 ALGORITHM = "HS256"
+MAX_USER_ID = 2**31 - 1  # the largest id the database stores (a 32-bit integer)
 ACCESS_TOKEN_LIFETIME = timedelta(minutes=15)
 ROLES = ("reader", "librarian", "admin")
 REQUIRED_CLAIMS = ["sub", "role", "iat", "exp", "jti"]
@@ -81,15 +82,20 @@ def decode_access_token(token: str) -> AccessClaims:
 
     try:
         user_id = int(payload["sub"])
-    except ValueError:
+        # An id outside the database's integer range can match no user, and asking the database for it would crash.
+        if not 1 <= user_id <= MAX_USER_ID:
+            raise ValueError("subject out of range")
+        issued_at = datetime.fromtimestamp(payload["iat"], UTC)
+        expires_at = datetime.fromtimestamp(payload["exp"], UTC)
+    except (ValueError, TypeError, OverflowError, OSError):
         raise TokenError("invalid", "The token is not valid") from None
     if payload["role"] not in ROLES:
         raise TokenError("invalid", "The token is not valid")
     return AccessClaims(
         user_id=user_id,
         role=payload["role"],
-        issued_at=datetime.fromtimestamp(payload["iat"], UTC),
-        expires_at=datetime.fromtimestamp(payload["exp"], UTC),
+        issued_at=issued_at,
+        expires_at=expires_at,
         token_id=payload["jti"],
     )
 

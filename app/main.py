@@ -54,6 +54,10 @@ async def observe_requests(request: Request, call_next):
         response = await call_next(request)
         status_code = response.status_code
         response.headers["X-Request-ID"] = request_id
+        if request.url.path.startswith("/auth/"):
+            # Tokens, the identity and sign-in results must never sit in a browser or proxy cache (RFC 6749 5.1).
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["Pragma"] = "no-cache"
         return response
     finally:
         if request.url.path not in UNMEASURED_PATHS:
