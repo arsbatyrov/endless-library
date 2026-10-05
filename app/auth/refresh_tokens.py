@@ -6,6 +6,7 @@ so a leaked database cannot be used to act as a user for the next 7 days. (A fas
 """
 
 import hashlib
+import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 
@@ -13,6 +14,8 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.models import RefreshToken, User
+
+logger = logging.getLogger("endless_library.auth")
 
 REFRESH_TOKEN_LIFETIME = timedelta(days=7)
 COOKIE_NAME = "refresh_token"
@@ -55,6 +58,14 @@ def revoke_all_refresh_tokens(
         db.commit()
 
 
+def _log_reuse(user_id: int) -> None:
+    """A replaced or revoked token was presented again: a copy of it exists somewhere. Never the token itself."""
+    logger.warning(
+        "refresh token reuse detected: all sessions of the user were ended",
+        extra={"event": "refresh_token_reuse", "user_id": user_id},
+    )
+
+
 def rotate_refresh_token(
     db: Session, token: str, now: datetime | None = None
 ) -> tuple[User, str] | None:
@@ -73,6 +84,7 @@ def rotate_refresh_token(
     if row.revoked_at is not None:
         _revoke_all(db, row.user_id, now)
         db.commit()
+        _log_reuse(row.user_id)
         return None
     if row.expires_at <= now:
         return None
@@ -90,6 +102,7 @@ def rotate_refresh_token(
     if claimed.rowcount != 1:
         _revoke_all(db, row.user_id, now)
         db.commit()
+        _log_reuse(row.user_id)
         return None
     new_token = issue_refresh_token(db, user, now)
     db.commit()

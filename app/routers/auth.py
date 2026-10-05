@@ -5,6 +5,12 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
+from app.auth.events import (
+    record_login,
+    record_logout,
+    record_password_changed,
+    record_refresh,
+)
 from app.auth.login_guard import login_guard
 from app.auth.passwords import (
     PasswordPolicyError,
@@ -106,6 +112,7 @@ def login(data: LoginRequest, request: Request, response: Response, db: Session 
     # Locked logins are refused before the password is even looked at (it would cost a hash for nothing).
     wait = login_guard.check(data.username)
     if wait is not None:
+        record_login("locked", data.username)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=TOO_MANY_ATTEMPTS,
@@ -115,12 +122,14 @@ def login(data: LoginRequest, request: Request, response: Response, db: Session 
     user = authenticate(db, data.username, data.password)
     if user is None:
         login_guard.record_failure(data.username)
+        record_login("failure", data.username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=INVALID_CREDENTIALS)
     login_guard.reset(data.username)
 
     refresh_token = issue_refresh_token(db, user)
     user.last_login_at = datetime.now(UTC)
     db.commit()
+    record_login("success", data.username, user)
 
     _set_refresh_cookie(response, request, refresh_token)
     return LoginResponse(
@@ -157,6 +166,7 @@ def refresh(
     """Exchange the refresh cookie for a new access token. The old refresh token stops working."""
     rotated = rotate_refresh_token(db, refresh_token) if refresh_token else None
     if rotated is None:
+        record_refresh("rejected")
         failure = JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": INVALID_REFRESH_TOKEN}
         )
@@ -164,6 +174,7 @@ def refresh(
         return failure
 
     user, new_token = rotated
+    record_refresh("ok", user)
     _set_refresh_cookie(response, request, new_token)
     return LoginResponse(
         access_token=create_access_token(user.id, user.role),
@@ -187,6 +198,7 @@ def logout(
     """End this session: revoke the refresh token and clear the cookie. Safe to repeat."""
     if refresh_token:
         revoke_refresh_token(db, refresh_token)
+    record_logout()
     done = Response(status_code=status.HTTP_204_NO_CONTENT)
     _clear_refresh_cookie(done, request)
     return done
@@ -238,6 +250,7 @@ def change_password(
 
     user.password_hash = hash_password(data.new_password)
     revoke_all_refresh_tokens(db, user.id)  # commits together with the new hash
+    record_password_changed(user)
     done = Response(status_code=status.HTTP_204_NO_CONTENT)
     _clear_refresh_cookie(done, request)
     return done
