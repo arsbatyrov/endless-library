@@ -33,6 +33,6 @@ def test_schema_behind_a_prefix_lists_the_public_server_address():
 
 def test_routes_still_work_when_the_prefix_is_removed_by_the_proxy(client):
     """nginx передаёт нам /books (без /api): приложение с root_path обязано отвечать на такие адреса."""
-    response = TestClient(app, root_path="/api").get("/books/popular")
+    response = TestClient(app, root_path="/api", headers=client.headers).get("/books/popular")
 
     assert response.status_code == 200

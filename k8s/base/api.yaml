@@ -32,10 +32,6 @@ spec:
             # Signs login tokens. Required: the API refuses to start without it. Created by deploy.sh.
             - name: JWT_SECRET
               valueFrom: {secretKeyRef: {name: endless-library-jwt, key: JWT_SECRET}}
-            # TEMPORARY (AUTH-007): books, readers and loans are still open here, because the web UI has no sign-in page
-            # yet. Remove this variable (the default is protection ON) when AUTH-013 lands.
-            - name: AUTH_REQUIRED
-              value: "false"
             # Снаружи API виден под /api (nginx в web отрезает префикс): нужно странице документации /api/docs.
             - name: API_ROOT_PATH
               value: /api

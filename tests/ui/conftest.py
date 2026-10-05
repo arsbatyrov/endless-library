@@ -18,12 +18,18 @@ import pytest
 from alembic import command
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.engine import make_url
+from sqlalchemy.orm import Session
 
 from app import models  # noqa: F401  (регистрирует таблицы в Base)
+from app.auth.passwords import hash_password
 from app.database import Base
+from app.models import User
 from tests.db_utils import ROOT, alembic_config, ensure_database, reset_schema
 from tests.ui.api_client import ApiClient
 from tests.ui.pages import App
+
+ADMIN_USERNAME = "e2e-admin"
+ADMIN_PASSWORD = "e2e admin password"
 
 API_PORT = int(os.getenv("UI_API_PORT", "8100"))
 WEB_PORT = int(os.getenv("UI_WEB_PORT", "5180"))
@@ -115,11 +121,12 @@ def ui_stack():
         open(web_log_path, "w", encoding="utf-8"),
     )
 
-    # AUTH_REQUIRED=false: the web UI has no sign-in page yet (AUTH-013); then the UI tests will log in instead.
+    # API_ROOT_PATH=/api: the browser reaches the API through the Vite proxy under /api (as it does behind nginx), so
+    # the refresh cookie must be scoped to /api/auth, exactly like in production.
     api_env = {
         **os.environ,
         "DATABASE_URL": e2e_url.render_as_string(hide_password=False),
-        "AUTH_REQUIRED": "false",
+        "API_ROOT_PATH": "/api",
     }
     web_env = {**os.environ, "API_TARGET": f"http://127.0.0.1:{API_PORT}"}
     api = subprocess.Popen(
@@ -196,10 +203,58 @@ def browser_context_args(browser_context_args):
 
 
 @pytest.fixture
-def api(ui_stack):
-    client = ApiClient(ui_stack.api_url)
+def admin_account(ui_stack, clean_database):
+    """The administrator every UI test works as (created after the database was emptied)."""
+    with Session(ui_stack.engine) as session:
+        session.add(
+            User(username=ADMIN_USERNAME, password_hash=hash_password(ADMIN_PASSWORD), role="admin")
+        )
+        session.commit()
+
+
+@pytest.fixture
+def admin_login(ui_stack, admin_account):
+    """Signs the administrator in through the API: returns the access token and the refresh cookie value."""
+    response = httpx.post(
+        f"{ui_stack.api_url}/auth/login",
+        json={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD},
+        timeout=10,
+    )
+    assert response.status_code == 200, response.text
+    cookie = response.headers["set-cookie"].split(";")[0].split("=", 1)[1]
+    return response.json()["access_token"], cookie
+
+
+@pytest.fixture
+def api(ui_stack, admin_login):
+    client = ApiClient(ui_stack.api_url, token=admin_login[0])
     yield client
     client.close()
+
+
+@pytest.fixture(autouse=True)
+def browser_session(request, context, ui_stack, admin_login):
+    """Every UI test starts signed in, without clicking through the sign-in page.
+
+    The refresh cookie is put into the browser exactly as the server issued it (httpOnly, path /api/auth); the page
+    then restores the session silently, as it does after a reload. Tests marked `anonymous` start without it.
+    """
+    if request.node.get_closest_marker("anonymous"):
+        return
+    context.add_cookies(
+        [
+            {
+                "name": "refresh_token",
+                "value": admin_login[1],
+                # domain and path explicitly: a "url" would make Playwright derive the path "/api/" (default-path rule),
+                # a second cookie next to the server's own (path /api/auth) that would be sent too and looks like token reuse
+                "domain": "127.0.0.1",
+                "path": "/api/auth",
+                "httpOnly": True,
+                "sameSite": "Lax",
+            }
+        ]
+    )
 
 
 @pytest.fixture

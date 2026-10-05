@@ -104,16 +104,17 @@ CI = read(".github/workflows/ci.yml")
 DOCKER_JOB = CI[CI.index("  docker:") :]
 
 
-def test_compose_passes_the_jwt_secret_and_the_switch():
+def test_compose_passes_the_jwt_secret_and_has_no_way_to_switch_the_protection_off():
     compose = read("docker-compose.yml")
 
     assert "JWT_SECRET: ${JWT_SECRET:-}" in compose
-    assert "AUTH_REQUIRED" in compose
+    assert "AUTH_REQUIRED" not in compose
+    assert "AUTH_REQUIRED" not in read("k8s/base/api.yaml")
+    assert "AUTH_REQUIRED" not in read(".env.example")
 
 
-def test_the_docker_ci_job_generates_a_jwt_secret_and_turns_the_protection_on():
+def test_the_docker_ci_job_generates_a_jwt_secret():
     assert 'sed -i "s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/" .env' in DOCKER_JOB
-    assert re.search(r"AUTH_REQUIRED=true", DOCKER_JOB)
 
 
 def test_the_docker_ci_job_expects_401_without_a_login_and_data_with_one():

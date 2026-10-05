@@ -17,6 +17,13 @@ from app.auth.passwords import verify_password
 from app.models import User
 from tests.factories import make_reader, make_user
 
+
+@pytest.fixture
+def client(anonymous_client):
+    """These tests check sign-in, roles and access errors: they start WITHOUT a login."""
+    return anonymous_client
+
+
 PASSWORD = "correct horse"
 ENV = {"LIBRARY_USER_PASSWORD": PASSWORD}
 

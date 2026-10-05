@@ -11,6 +11,13 @@ import pytest
 from app.auth.tokens import create_access_token
 from tests.factories import make_user
 
+
+@pytest.fixture
+def client(anonymous_client):
+    """These tests check sign-in, roles and access errors: they start WITHOUT a login."""
+    return anonymous_client
+
+
 pytestmark = pytest.mark.contract
 
 # The only operations that need no bearer token: probes, and the cookie-based session endpoints.
@@ -22,11 +29,6 @@ OPEN_OPERATIONS = {
     ("POST", "/auth/logout"),
 }
 UNKNOWN_ID = "999999"  # no such record, and not the reader card of the test reader
-
-
-@pytest.fixture(autouse=True)
-def protection_on(monkeypatch):
-    monkeypatch.setenv("AUTH_REQUIRED", "true")
 
 
 @pytest.fixture

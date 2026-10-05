@@ -4,7 +4,6 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from app.auth.config import auth_required
 from app.auth.tokens import TokenError, get_user_for_token
 from app.database import get_db
 from app.models import User
@@ -39,19 +38,13 @@ ALL_ROLES = ("reader", "librarian", "admin")
 STAFF_ROLES = ("librarian", "admin")
 
 
-def require_roles(*allowed: str, enforce_always: bool = False):
-    """Dependency factory: only the listed roles pass. No/bad token gives 401, another role gives 403.
-
-    While the temporary AUTH_REQUIRED switch is off (see app.auth.config.auth_required) everything passes, unless
-    `enforce_always` is set: endpoints that need to know WHO is calling (user management) can never be opened that way.
-    """
+def require_roles(*allowed: str):
+    """Dependency factory: only the listed roles pass. No/bad token gives 401, another role gives 403."""
 
     def dependency(
         credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
         db: Session = Depends(get_db),
     ) -> User | None:
-        if not enforce_always and not auth_required():
-            return None
         user = _authenticate(credentials, db)
         if user.role not in allowed:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
@@ -60,8 +53,8 @@ def require_roles(*allowed: str, enforce_always: bool = False):
     return dependency
 
 
-# User management always needs a real signed-in staff member, whatever AUTH_REQUIRED says.
-require_staff = require_roles(*STAFF_ROLES, enforce_always=True)
+# Librarians and admins (user management; what each may do with which account is decided in the service).
+require_staff = require_roles(*STAFF_ROLES)
 
 
 def require_staff_or_own_reader_card(
@@ -74,8 +67,6 @@ def require_staff_or_own_reader_card(
     A reader asking for somebody else's card gets 403 whether or not that card exists, so card numbers cannot be probed.
     The link (`reader_id`) is read from the database, not from the token.
     """
-    if not auth_required():
-        return None
     user = _authenticate(credentials, db)
     if user.role in STAFF_ROLES or (user.role == "reader" and user.reader_id == reader_id):
         return user

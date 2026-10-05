@@ -2,9 +2,6 @@
 
 Rules: no token or a bad token gives 401; reader may only read the catalogue (books list, one book, popular);
 librarian and admin may do everything on books, readers and loans; health, readiness and the documentation stay open.
-
-The whole suite runs with AUTH_REQUIRED=false (the temporary switch, see tests/conftest.py); these tests turn
-the protection on with the `enforced` fixture.
 """
 
 from datetime import UTC, datetime, timedelta
@@ -14,6 +11,13 @@ import pytest
 
 from app.auth.tokens import create_access_token
 from tests.factories import make_reader, make_user
+
+
+@pytest.fixture
+def client(anonymous_client):
+    """These tests check sign-in, roles and access errors: they start WITHOUT a login."""
+    return anonymous_client
+
 
 BOOK = {"title": "Dune", "author": "Frank Herbert", "total_copies": 2}
 READER = {"name": "Ann Lee", "email": "ann@example.com"}
@@ -49,16 +53,6 @@ OPEN_ENDPOINTS = ["/health", "/ready", "/docs", "/openapi.json"]
 
 def ident(case):
     return f"{case[0]} {case[1]}"
-
-
-@pytest.fixture
-def enforced(monkeypatch):
-    monkeypatch.setenv("AUTH_REQUIRED", "true")
-
-
-@pytest.fixture(autouse=True)
-def _protection_on(enforced):
-    """Every test in this module runs with the protection turned on."""
 
 
 def call(client, case, token=None):
@@ -277,22 +271,13 @@ def test_open_endpoints_also_work_with_a_bad_token(client):
     assert response.status_code == 200
 
 
-# ---------- the temporary switch AUTH_REQUIRED ----------
+# ---------- there is no way to switch the protection off ----------
 
 
-def test_protection_is_on_when_the_variable_is_not_set(client, monkeypatch):
-    monkeypatch.delenv("AUTH_REQUIRED", raising=False)
+@pytest.mark.parametrize("value", ["false", "0", "off", "no", ""])
+def test_no_environment_variable_opens_the_endpoints(client, monkeypatch, value):
+    monkeypatch.setenv("AUTH_REQUIRED", value)
 
     assert client.get("/books").status_code == 401
-
-
-def test_protection_is_off_only_when_explicitly_switched_off(client, monkeypatch):
-    monkeypatch.setenv("AUTH_REQUIRED", "false")
-
-    assert client.get("/books").status_code == 200
-
-
-def test_switch_does_not_affect_the_profile_endpoint(client, monkeypatch):
-    monkeypatch.setenv("AUTH_REQUIRED", "false")
-
-    assert client.get("/auth/me").status_code == 401
+    assert client.get("/readers").status_code == 401
+    assert client.post("/loans", json=LOAN).status_code == 401

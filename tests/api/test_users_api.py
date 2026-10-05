@@ -1,7 +1,6 @@
 """AUTH-009: user management, POST/GET /users, PATCH /users/{id}, POST /users/{id}/reset-password (criteria 1-9).
 
 Who may do what: an admin manages everybody; a librarian manages only reader accounts; a reader manages nobody.
-These endpoints always demand a login: the temporary AUTH_REQUIRED switch does not open them.
 """
 
 import pytest
@@ -11,6 +10,13 @@ from app.auth.refresh_tokens import issue_refresh_token
 from app.auth.tokens import create_access_token
 from app.models import RefreshToken, User
 from tests.factories import make_reader, make_user
+
+
+@pytest.fixture
+def client(anonymous_client):
+    """These tests check sign-in, roles and access errors: they start WITHOUT a login."""
+    return anonymous_client
+
 
 PASSWORD = "correct horse"
 NEW_PASSWORD = "battery staple"
@@ -156,13 +162,6 @@ def test_anonymous_is_401_everywhere_in_users(client, admin):
         response = client.request(method, path, json=body)
         assert response.status_code == 401, (method, path)
         assert response.headers["www-authenticate"] == "Bearer"
-
-
-def test_users_stay_closed_when_the_temporary_switch_is_off(client, admin, monkeypatch):
-    monkeypatch.setenv("AUTH_REQUIRED", "false")
-
-    assert client.get("/users").status_code == 401
-    assert client.post("/users", json=new_account()).status_code == 401
 
 
 def test_invalid_body_without_a_token_is_401_not_422(client):

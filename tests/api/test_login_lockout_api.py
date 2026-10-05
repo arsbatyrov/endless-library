@@ -18,6 +18,13 @@ from app.cache import cache
 from app.models import RefreshToken
 from tests.factories import make_user
 
+
+@pytest.fixture
+def client(anonymous_client):
+    """These tests check sign-in, roles and access errors: they start WITHOUT a login."""
+    return anonymous_client
+
+
 PASSWORD = "correct horse"
 WRONG = "wrong password"
 GUARD_FAILURES = "endless_library_login_guard_failures_total"

@@ -341,8 +341,6 @@ jobs:
           cp .env.example .env
           # the API refuses to start without a strong JWT secret: generate one for this run
           sed -i "s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/" .env
-          # the protection is ON in this job: it checks that data is closed without a login (AUTH-012)
-          sed -i "s/^AUTH_REQUIRED=.*/AUTH_REQUIRED=true/" .env
 
       - name: Build images and start the stack
         run: docker compose --profile full up -d --build

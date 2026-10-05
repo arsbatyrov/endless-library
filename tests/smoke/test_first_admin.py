@@ -4,51 +4,11 @@ The password lives only in the cluster Secret `endless-library-admin`; this test
 logs in through the real entrance (Ingress -> nginx -> API). Needs kubectl and the context kind-endless-library.
 """
 
-import base64
-import json
-import shutil
 import subprocess
 
 import httpx2 as httpx
-import pytest
 
-from tests.smoke.conftest import SMOKE_URL
-
-CONTEXT = "kind-endless-library"
-
-
-def secret_value(name: str, key: str) -> str:
-    if shutil.which("kubectl") is None:
-        pytest.skip("kubectl is not installed")
-    result = subprocess.run(
-        [
-            "kubectl",
-            "--context",
-            CONTEXT,
-            "-n",
-            "endless-library",
-            "get",
-            "secret",
-            name,
-            "-o",
-            "json",
-        ],
-        capture_output=True,
-        text=True,
-        timeout=30,
-    )
-    if result.returncode != 0:
-        pytest.fail(
-            f"Secret {name} is missing: run `bash k8s/deploy.sh` first. {result.stderr.strip()}"
-        )
-    return base64.b64decode(json.loads(result.stdout)["data"][key]).decode()
-
-
-@pytest.fixture(scope="module")
-def admin_credentials():
-    return secret_value("endless-library-admin", "username"), secret_value(
-        "endless-library-admin", "password"
-    )
+from tests.smoke.conftest import CONTEXT, SMOKE_URL, cluster_secret
 
 
 def test_the_admin_secret_holds_a_random_password(admin_credentials):
@@ -87,7 +47,7 @@ def test_the_refresh_cookie_works_through_the_ingress(admin_credentials):
 
 
 def test_the_jwt_secret_is_in_its_own_secret_and_differs_from_the_admin_password(admin_credentials):
-    jwt = secret_value("endless-library-jwt", "JWT_SECRET")
+    jwt = cluster_secret("endless-library-jwt", "JWT_SECRET")
 
     assert len(jwt) >= 64
     assert jwt != admin_credentials[1]

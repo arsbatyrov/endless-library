@@ -63,8 +63,6 @@ services:
       # Required by the API (it refuses to start without a strong secret). An empty default here lets
       # `docker compose up -d db redis` work without it; the API then stops with a clear message.
       JWT_SECRET: ${JWT_SECRET:-}
-      # TEMPORARY (AUTH-007): `false` keeps books/readers/loans open until the web UI has a sign-in page (AUTH-013).
-      AUTH_REQUIRED: ${AUTH_REQUIRED:-false}
     depends_on:
       db:
         condition: service_healthy
