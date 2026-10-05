@@ -8,6 +8,7 @@ from app.auth.config import auth_required
 from app.auth.tokens import TokenError, get_user_for_token
 from app.database import get_db
 from app.models import User
+from app.schemas import PathId
 
 # auto_error=False: FastAPI's own answer for a missing header is 403; we want 401 with a Bearer challenge.
 _bearer = HTTPBearer(auto_error=False)
@@ -56,6 +57,24 @@ def require_roles(*allowed: str):
         return user
 
     return dependency
+
+
+def require_staff_or_own_reader_card(
+    reader_id: PathId,
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Staff may open any reader card's data; a reader only the card their account is linked to (AUTH-008).
+
+    A reader asking for somebody else's card gets 403 whether or not that card exists, so card numbers cannot be probed.
+    The link (`reader_id`) is read from the database, not from the token.
+    """
+    if not auth_required():
+        return None
+    user = _authenticate(credentials, db)
+    if user.role in STAFF_ROLES or (user.role == "reader" and user.reader_id == reader_id):
+        return user
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN)
 
 
 def _unauthorized() -> HTTPException:

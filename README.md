@@ -69,7 +69,7 @@ Books, readers and loans demand a login (`Authorization: Bearer <access token>`)
 
 | Role | Allowed |
 |---|---|
-| `reader` | read the catalogue: `GET /books`, `GET /books/{id}`, `GET /books/popular` |
+| `reader` | read the catalogue: `GET /books`, `GET /books/{id}`, `GET /books/popular`; the active loans of their own reader card: `GET /readers/{id}/loans` (another card gives `403`, whether or not it exists) |
 | `librarian`, `admin` | everything on books, readers and loans |
 
 No or a bad token gives `401` (with `WWW-Authenticate: Bearer`), a role that is not allowed gives `403`. `/health`,
@@ -203,7 +203,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-683 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+707 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 
