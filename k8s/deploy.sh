@@ -67,7 +67,7 @@ if ! k -n endless-library wait --for=condition=complete "$admin_job" --timeout=1
 fi
 admin_log="$(k -n endless-library logs "$admin_job")"
 echo "$admin_log"
-if grep -q "^Created" <<<"$admin_log"; then  # here-string: no pipe, so no SIGPIPE under pipefail
+if [ "${DEMO:-}" != "1" ] && grep -q "^Created" <<<"$admin_log"; then  # here-string: no pipe, so no SIGPIPE under pipefail
   shown_password="$(k -n endless-library get secret endless-library-admin -o jsonpath='{.data.password}' | base64 -d)"
   echo
   echo "================ Первый администратор (показан один раз) ================"
@@ -76,6 +76,32 @@ if grep -q "^Created" <<<"$admin_log"; then  # here-string: no pipe, so no SIGPI
   echo "  Пароль хранится только в Secret кластера: kubectl --context $CONTEXT -n endless-library get secret endless-library-admin -o jsonpath='{.data.password}' | base64 -d"
   echo "========================================================================="
   echo
+fi
+
+# Demo access (AUTH-021). OPT-IN, local machines only: `DEMO=1 bash k8s/deploy.sh` creates (or resets) the accounts
+# admin, librarian and reader with PUBLIC passwords (see the README). The administrator's password in the Secret is
+# kept in step with the account, so the tests that read it from there keep working. Without DEMO=1 nothing is created,
+# and the API's demo flag is removed. This is never done by CI's normal deploy.
+if [ "${DEMO:-}" = "1" ]; then
+  echo "== DEMO=1: аккаунты с ПУБЛИЧНЫМИ паролями (небезопасно: только для локального компьютера)"
+  demo_job="$(k create -f k8s/seed-demo-job.yaml -o name)"
+  if ! k -n endless-library wait --for=condition=complete "$demo_job" --timeout=180s; then
+    k -n endless-library logs "$demo_job" || true
+    exit 1
+  fi
+  demo_log="$(k -n endless-library logs "$demo_job")"
+  echo "$demo_log"
+  demo_admin_password="$(awk '$1 == "demo-login:" && $2 == "admin" {print $3}' <<<"$demo_log")"
+  if [ -z "$demo_admin_password" ]; then
+    echo "Не удалось прочитать демо-пароль администратора из вывода команды seed-demo" >&2
+    exit 1
+  fi
+  k -n endless-library patch secret endless-library-admin --type merge \
+    -p "{\"data\":{\"password\":\"$(printf '%s' "$demo_admin_password" | base64 | tr -d '\n')\"}}"
+  # while demo accounts are enabled the API logs a loud warning at startup
+  k -n endless-library set env deployment/api DEMO_ACCOUNTS=true
+else
+  k -n endless-library set env deployment/api DEMO_ACCOUNTS- >/dev/null
 fi
 
 echo "== 5/7 Перезапуск API и web на свежих образах"

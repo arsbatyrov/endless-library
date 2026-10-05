@@ -7,12 +7,17 @@ logs in through the real entrance (Ingress -> nginx -> API). Needs kubectl and t
 import subprocess
 
 import httpx2 as httpx
+import pytest
 
 from tests.smoke.conftest import CONTEXT, SMOKE_URL, cluster_secret
 
 
 def test_the_admin_secret_holds_a_random_password(admin_credentials):
     username, password = admin_credentials
+    if password == "admin12345":
+        pytest.skip(
+            "demo mode (DEMO=1): the administrator's password is the public demo one, not a random one"
+        )
 
     assert username == "admin"
     assert len(password) >= 32

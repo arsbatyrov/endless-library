@@ -63,6 +63,9 @@ services:
       # Required by the API (it refuses to start without a strong secret). An empty default here lets
       # `docker compose up -d db redis` work without it; the API then stops with a clear message.
       JWT_SECRET: ${JWT_SECRET:-}
+      # Demo accounts with PUBLIC passwords (AUTH-021): `false` unless you set it. With `true` the API warns at startup and
+      # `docker compose exec api python -m app.cli seed-demo` creates admin / librarian / reader. Local machine only.
+      DEMO_ACCOUNTS: ${DEMO_ACCOUNTS:-false}
     depends_on:
       db:
         condition: service_healthy

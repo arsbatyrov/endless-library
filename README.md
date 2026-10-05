@@ -140,6 +140,48 @@ kubectl --context kind-endless-library -n endless-library get secret endless-lib
 
 The JWT secret is a separate Secret (`endless-library-jwt`), also created once and never overwritten.
 
+### Demo access (local machine only)
+
+To sign in at once, without reading a generated password, three accounts with **public, well-known passwords** can be
+created. They are **opt-in** and **insecure**: use them only on a local machine that nobody else can reach.
+
+| Login / password | Role |
+|---|---|
+| admin / admin12345 | admin |
+| librarian / librarian12345 | librarian |
+| reader / reader12345 | reader (linked to the demo card "Demo Reader") |
+
+The password policy forbids `admin / admin` (at least 8 characters, not equal to the login), hence `admin12345`.
+
+```powershell
+# kind cluster (Git Bash): creates or resets the three accounts; the Secret endless-library-admin gets the same
+# password as the account, and the API logs a loud warning at startup
+DEMO=1 bash k8s/deploy.sh
+
+# Docker Compose: put DEMO_ACCOUNTS=true into .env, then
+docker compose exec api python -m app.cli seed-demo
+
+# development on one machine
+$env:DEMO_ACCOUNTS = "true"
+.\.venv\Scripts\python.exe -m app.cli seed-demo
+```
+
+`seed-demo` refuses to run unless `DEMO_ACCOUNTS=true` (only the word `true`), is safe to repeat (it resets the demo
+passwords and reactivates the accounts, creating nothing twice), refuses to touch an existing account that has the demo
+login but another role, and ends the sessions of the accounts it resets. Without `DEMO=1` a deploy creates nothing and
+removes the API's demo flag. **The accounts stay** after you stop using the flag: to go back to a secure setup, change the
+passwords or disable the accounts (Users page), for example:
+
+```powershell
+$env:LIBRARY_USER_PASSWORD = "<a new strong password>"
+.\.venv\Scripts\python.exe -m app.cli set-password --username admin    # also the way to regain access
+```
+
+`set-password` takes the password from `LIBRARY_USER_PASSWORD` or a hidden prompt (never an argument), applies the
+password policy, ends every session of the account and does not reactivate a disabled one. CI never enables demo access
+in its normal deploys; one separate job step deploys with `DEMO=1` to test it. Nothing about the demo logins is shown in
+the application itself.
+
 ### Brute-force protection of the login
 
 Five failed logins in a row for one login (counted over 15 minutes, ignoring case) lock that login for 15 minutes: the

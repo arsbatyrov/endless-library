@@ -179,3 +179,18 @@ def reset_password(db: Session, actor: User, user_id: int, new_password: str) ->
     target.password_hash = hash_password(new_password)
     revoke_all_refresh_tokens(db, target.id, commit=False)  # same transaction as the new hash
     db.commit()
+
+
+def set_password_by_login(db: Session, username: str, new_password: str) -> User:
+    """Set a new password for the account with this login (command line; no signed-in actor). Ends its sessions.
+
+    The policy applies. The account is not reactivated: a disabled account stays disabled.
+    """
+    target = db.scalar(select(User).where(func.lower(User.username) == username.lower()))
+    if target is None:
+        raise NotFoundError(f"User '{username}' does not exist")
+    _check_password(new_password, target.username, "password")
+    target.password_hash = hash_password(new_password)
+    revoke_all_refresh_tokens(db, target.id, commit=False)
+    db.commit()
+    return target
