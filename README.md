@@ -257,8 +257,19 @@ docker compose up -d redis                     # Redis on 127.0.0.1:6379
 - **Logs**: every record is one JSON line on stdout; each request produces one record with `request_id`, `method`,
   `route`, `status` and `duration_ms`. The `X-Request-ID` header is accepted from the client (safe characters only)
   or generated, and returned in the response: it is the key for finding all records of one request.
+- **Sign-in metrics and log** (AUTH-016). `endless_library_auth_logins_total{result}` counts login attempts as
+  `success`, `failure` (wrong password, unknown or disabled login: indistinguishable on purpose) or `locked` (too many
+  failures); `endless_library_auth_refresh_total{result}` counts token refreshes as `ok` or `rejected`. The only label is
+  the result: never a login or a user, so the number of series stays small and no personal data reaches Prometheus. All
+  series exist from the start at 0, so graphs have no gaps. The log has one line per event (`login`, `refresh`,
+  `logout`, `password_changed`, `refresh_token_reuse`) with `request_id`, `result` and, for a success, `user_id`. It
+  **never contains a password, a token, a cookie or a hash, and not even the login of a failed attempt** (people often
+  type a password into the login field): a failure carries `login_hash`, the first 12 hex characters of a SHA-256 of
+  the lower-cased login, which is enough to see many attempts on one login. The reuse of a replaced refresh token (a
+  sign of theft) is logged at `WARNING` with the user id.
 - **Prometheus and Grafana** are deployed to the cluster (`k8s/monitoring`, namespace `monitoring`) by
-  `k8s/deploy.sh`:
+  `k8s/deploy.sh`. The dashboard has the panels **Входы по результатам** (logins by result), **Заблокированные входы**
+  (locked logins in the last hour) and **Обновления токена** (refreshes):
 
 ```bash
 # Grafana: http://grafana.localhost:8080 (the "Endless Library" dashboard, no port-forward needed)
@@ -296,7 +307,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-1049 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+1088 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 
@@ -313,14 +324,14 @@ pytest tests/smoke -m smoke --no-cov         # tests of the deployed cluster (af
 
 | Folder | Tests | Level | What it checks | Where it runs in CI |
 |---|---|---|---|---|
-| `tests/unit` | 210 | unit | service logic, fines, log format, password hashing and policy, JWT tokens, the login guard, the command line, deployment files | Tests |
-| `tests/api` | 501 | API (in memory) | status codes, format, errors, Redis cache, ranking, metrics, contract regressions | Tests |
+| `tests/unit` | 217 | unit | service logic, fines, log format, password hashing and policy, JWT tokens, the login guard, the command line, deployment files | Tests |
+| `tests/api` | 531 | API (in memory) | status codes, format, errors, Redis cache, ranking, metrics, contract regressions | Tests |
 | `tests/db` | 42 | database | the database's own constraints (uniqueness, foreign keys, account rules), recovery after dropped connections | Tests |
 | `tests/migrations` | 11 | migrations | apply from scratch, rollback, match with the models | Tests |
 | `tests/concurrency` | 2 | race conditions | simultaneous requests to the same data | Tests |
 | `tests/contract` | 48 | contract | Schemathesis against OpenAPI and the schema snapshot | Contract tests |
 | `tests/ui` | 205 | interface | scenarios in a real browser (Playwright), errors, network failures, signing in and out | UI tests |
-| `tests/smoke` | 30 | deployed system | Ingress, data all the way to the database, resilience (update without losses, database and Redis restart), Prometheus and Grafana | Kubernetes |
+| `tests/smoke` | 32 | deployed system | Ingress, data all the way to the database, resilience (update without losses, database and Redis restart), Prometheus and Grafana | Kubernetes |
 
 Other CI checks: linter and formatting (Lint), types and frontend build (Frontend), image build and a check through
 nginx (Docker images), dependency and image vulnerabilities (Security), code analysis (CodeQL). Code coverage of the

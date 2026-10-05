@@ -28,6 +28,7 @@ def _raw(path: str) -> dict:
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",  # the dashboard contains Cyrillic; on Windows the default would be cp1252
         timeout=30,
     ).stdout
     return json.loads(out)
@@ -126,3 +127,59 @@ def test_grafana_is_reachable_by_its_host_name_through_the_ingress():
     assert grafana.status_code == 200
     assert grafana.json()["database"] == "ok"
     assert library.json() == {"status": "ok"}
+
+
+def test_prometheus_sees_the_sign_in_metrics(admin_credentials):
+    """AUTH-016: a successful and a failed sign-in through the real entrance show up as counters in Prometheus."""
+    import httpx2 as httpx
+
+    from tests.smoke.conftest import SMOKE_URL
+
+    username, password = admin_credentials
+    with httpx.Client(base_url=f"{SMOKE_URL}/api", timeout=10) as client:
+        assert (
+            client.post(
+                "/auth/login", json={"username": username, "password": password}
+            ).status_code
+            == 200
+        )
+        assert (
+            client.post(
+                "/auth/login", json={"username": username, "password": "wrong password"}
+            ).status_code
+            == 401
+        )
+        assert client.post("/auth/refresh").status_code == 200
+
+    def seen():
+        logins = prometheus_query("sum by (result) (endless_library_auth_logins_total)")["data"][
+            "result"
+        ]
+        refreshes = prometheus_query("sum by (result) (endless_library_auth_refresh_total)")[
+            "data"
+        ]["result"]
+        by_login = {r["metric"]["result"]: float(r["value"][1]) for r in logins}
+        by_refresh = {r["metric"]["result"]: float(r["value"][1]) for r in refreshes}
+        ok = (
+            by_login.get("success", 0) >= 1
+            and by_login.get("failure", 0) >= 1
+            and by_refresh.get("ok", 0) >= 1
+        )
+        return (
+            ok
+            and {"success", "failure", "locked"} <= set(by_login)
+            and {"ok", "rejected"} <= set(by_refresh)
+        )
+
+    assert wait_for(seen), "the sign-in counters did not reach Prometheus"
+
+
+def test_the_dashboard_has_the_sign_in_panels_in_grafana():
+    base = "/api/v1/namespaces/monitoring/services/grafana:3000/proxy"
+
+    def titles():
+        dashboard = _raw(f"{base}/api/dashboards/uid/endless-library")["dashboard"]
+        found = {panel["title"] for panel in dashboard["panels"]}
+        return found if {"Входы по результатам", "Заблокированные входы"} <= found else None
+
+    assert wait_for(titles), "the sign-in panels are not in the provisioned dashboard"
