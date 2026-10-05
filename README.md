@@ -170,7 +170,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-379 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+415 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 
@@ -187,7 +187,7 @@ pytest tests/smoke -m smoke --no-cov         # tests of the deployed cluster (af
 
 | Folder | Tests | Level | What it checks | Where it runs in CI |
 |---|---|---|---|---|
-| `tests/unit` | 50 | unit | service logic, fines, log format | Tests |
+| `tests/unit` | 86 | unit | service logic, fines, log format, password hashing and policy | Tests |
 | `tests/api` | 159 | API (in memory) | status codes, format, errors, Redis cache, ranking, metrics, contract regressions | Tests |
 | `tests/db` | 42 | database | the database's own constraints (uniqueness, foreign keys, account rules), recovery after dropped connections | Tests |
 | `tests/migrations` | 11 | migrations | apply from scratch, rollback, match with the models | Tests |
