@@ -15,6 +15,31 @@ permissions:
   contents: read
 
 jobs:
+  # TEST-004: one Qase run per pull request to main. The test jobs report into it (QASE_TESTOPS_RUN_ID). This job has no
+  # `if:` and never fails on purpose: without the token (forks, Dependabot) or outside a pull request it only writes an
+  # EMPTY run id, and the test jobs then do not report. The pull request title goes in through the environment, never
+  # into the command line.
+  qase-run:
+    name: Qase test run
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run_id: ${{ steps.start.outputs.run_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Create the Qase run
+        id: start
+        env:
+          QASE_TESTOPS_API_TOKEN: ${{ secrets.QASE_TESTOPS_API_TOKEN }}
+          QASE_TESTOPS_PROJECT: ${{ vars.QASE_TESTOPS_PROJECT }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BRANCH: ${{ github.head_ref }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/qase_run.py start
+
   lint:
     name: Lint (ruff)
     runs-on: ubuntu-latest
@@ -69,6 +94,8 @@ jobs:
     name: Tests (Python 3.12, PostgreSQL 16)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    needs: qase-run
+    if: ${{ !cancelled() }}
 
     # PostgreSQL запускается как соседний контейнер на время этого job.
     services:
@@ -100,6 +127,11 @@ jobs:
     env:
       # Тесты сами создадут отдельную базу library_test и применят миграции.
       DATABASE_URL: postgresql+psycopg://library:library@127.0.0.1:5432/library
+      QASE_MODE: ${{ needs.qase-run.outputs.run_id != '' && 'testops' || 'off' }}
+      QASE_TESTOPS_PROJECT: ${{ vars.QASE_TESTOPS_PROJECT }}
+      QASE_TESTOPS_RUN_ID: ${{ needs.qase-run.outputs.run_id }}
+      QASE_TESTOPS_RUN_COMPLETE: "false"
+      QASE_FALLBACK: "off"
 
     steps:
       - name: Checkout
@@ -119,6 +151,8 @@ jobs:
       - name: Run tests with coverage
         # Сборка падает, если покрытие ниже 95% (сейчас 98%).
         run: pytest --cov-report=xml --cov-fail-under=95
+        env:
+          QASE_TESTOPS_API_TOKEN: ${{ secrets.QASE_TESTOPS_API_TOKEN }}
 
       - name: Upload coverage report
         if: always()
@@ -132,6 +166,8 @@ jobs:
     name: Contract tests (Schemathesis)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: qase-run
+    if: ${{ !cancelled() }}
 
     services:
       postgres:
@@ -150,6 +186,11 @@ jobs:
 
     env:
       DATABASE_URL: postgresql+psycopg://library:library@127.0.0.1:5432/library
+      QASE_MODE: ${{ needs.qase-run.outputs.run_id != '' && 'testops' || 'off' }}
+      QASE_TESTOPS_PROJECT: ${{ vars.QASE_TESTOPS_PROJECT }}
+      QASE_TESTOPS_RUN_ID: ${{ needs.qase-run.outputs.run_id }}
+      QASE_TESTOPS_RUN_COMPLETE: "false"
+      QASE_FALLBACK: "off"
 
     steps:
       - name: Checkout
@@ -168,11 +209,15 @@ jobs:
       # Schemathesis читает OpenAPI-схему API и сам генерирует запросы; второй тест сравнивает схему со снимком.
       - name: Run contract tests
         run: pytest tests/contract -m contract --no-cov
+        env:
+          QASE_TESTOPS_API_TOKEN: ${{ secrets.QASE_TESTOPS_API_TOKEN }}
 
   ui-tests:
     name: UI tests (Playwright)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: qase-run
+    if: ${{ !cancelled() }}
 
     services:
       postgres:
@@ -192,6 +237,11 @@ jobs:
     env:
       # UI-тесты сами создадут базу library_e2e_test, применят миграции и поднимут API и фронтенд.
       DATABASE_URL: postgresql+psycopg://library:library@127.0.0.1:5432/library
+      QASE_MODE: ${{ needs.qase-run.outputs.run_id != '' && 'testops' || 'off' }}
+      QASE_TESTOPS_PROJECT: ${{ vars.QASE_TESTOPS_PROJECT }}
+      QASE_TESTOPS_RUN_ID: ${{ needs.qase-run.outputs.run_id }}
+      QASE_TESTOPS_RUN_COMPLETE: "false"
+      QASE_FALLBACK: "off"
 
     steps:
       - name: Checkout
@@ -224,6 +274,8 @@ jobs:
 
       - name: Run UI tests
         run: pytest -m ui --no-cov
+        env:
+          QASE_TESTOPS_API_TOKEN: ${{ secrets.QASE_TESTOPS_API_TOKEN }}
 
       # При падении сохраняем скриншоты, видео, трассировки и логи серверов (папка test-results).
       # Скачать: gh run download <id> -n ui-test-results; открыть трассировку: python -m playwright show-trace trace.zip
@@ -240,11 +292,18 @@ jobs:
     name: Kubernetes (kind cluster smoke tests)
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    needs: qase-run
+    if: ${{ !cancelled() }}
 
     env:
       # Тесты не ходят в базу напрямую (база живёт в кластере), но общий conftest требует переменную.
       DATABASE_URL: postgresql+psycopg://library:library@127.0.0.1:5432/library
       KIND_VERSION: v0.33.0
+      QASE_MODE: ${{ needs.qase-run.outputs.run_id != '' && 'testops' || 'off' }}
+      QASE_TESTOPS_PROJECT: ${{ vars.QASE_TESTOPS_PROJECT }}
+      QASE_TESTOPS_RUN_ID: ${{ needs.qase-run.outputs.run_id }}
+      QASE_TESTOPS_RUN_COMPLETE: "false"
+      QASE_FALLBACK: "off"
 
     steps:
       - name: Checkout
@@ -289,6 +348,8 @@ jobs:
 
       - name: Run smoke and resilience tests
         run: pytest tests/smoke -m smoke --no-cov
+        env:
+          QASE_TESTOPS_API_TOKEN: ${{ secrets.QASE_TESTOPS_API_TOKEN }}
 
       # AUTH-012: deploying again must not touch the admin or any secret, and must not show a password again.
       - name: Deploy again (nothing may change)
@@ -307,13 +368,17 @@ jobs:
 
       - name: The admin still signs in after the second deploy
         run: pytest tests/smoke/test_first_admin.py -m smoke --no-cov
+        env:
+          QASE_MODE: "off"
 
       # AUTH-021: the opt-in demo deploy (public passwords, local use only): never part of the normal deploy above.
       - name: Deploy with demo accounts (DEMO=1)
         run: SKIP_BUILD=1 DEMO=1 bash k8s/deploy.sh | tee deploy-demo.log
 
-      - name: The demo accounts work, the Secret follows the administrator and the API warns
+      - name: The demo accounts work, the Secret holds a note and the API warns
         run: SMOKE_DEMO=1 pytest tests/smoke/test_demo_access.py -m smoke --no-cov
+        env:
+          QASE_TESTOPS_API_TOKEN: ${{ secrets.QASE_TESTOPS_API_TOKEN }}
 
       - name: Show cluster state on failure
         if: failure()
@@ -384,3 +449,21 @@ jobs:
       - name: Stop the stack
         if: always()
         run: docker compose --profile full down -v
+
+  # TEST-004: completes the shared Qase run when every test job is done (also after failures). Not a required check.
+  qase-finish:
+    name: Qase complete run
+    needs: [qase-run, tests, contract, ui-tests, kubernetes]
+    if: ${{ always() && needs.qase-run.outputs.run_id != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Complete the Qase run
+        env:
+          QASE_TESTOPS_API_TOKEN: ${{ secrets.QASE_TESTOPS_API_TOKEN }}
+          QASE_TESTOPS_PROJECT: ${{ vars.QASE_TESTOPS_PROJECT }}
+          QASE_TESTOPS_RUN_ID: ${{ needs.qase-run.outputs.run_id }}
+        run: python3 scripts/qase_run.py finish

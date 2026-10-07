@@ -354,7 +354,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-1483 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+1532 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 
@@ -371,7 +371,7 @@ pytest tests/smoke -m smoke --no-cov         # tests of the deployed cluster (af
 
 | Folder | Tests | Level | What it checks | Where it runs in CI |
 |---|---|---|---|---|
-| `tests/unit` | 275 | unit | service logic, fines, log format, password hashing and policy, JWT tokens, the login guard, the command line, deployment files | Tests |
+| `tests/unit` | 324 | unit | service logic, fines, log format, password hashing and policy, JWT tokens, the login guard, the command line, deployment files, the Qase reporting script and workflow | Tests |
 | `tests/api` | 593 | API (in memory) | status codes, format, errors, Redis cache, ranking, metrics, contract regressions | Tests |
 | `tests/db` | 42 | database | the database's own constraints (uniqueness, foreign keys, account rules), recovery after dropped connections | Tests |
 | `tests/migrations` | 11 | migrations | apply from scratch, rollback, match with the models | Tests |
@@ -440,6 +440,30 @@ python -m playwright show-trace test-results/artifacts/<test-folder>/trace.zip
 ```
 
 UI test server logs: `test-results/ui-servers/`.
+
+### Reporting to Qase (CI)
+
+The results of every **pull request to `main`** are reported to the Qase project `ELB` (TEST-004), so the cases, the runs and
+their history can be seen there.
+
+- **One Qase run per CI run.** The job "Qase test run" creates it (title `PR #<number>: <title>`, the description has the
+  branch, the commit and a link to the GitHub Actions run); the jobs Tests, Contract tests, UI tests and Kubernetes report into it;
+  the job "Qase complete run" closes it at the end. Both Qase jobs are not required checks.
+- **Cases.** Every test function becomes an automated case (its title is the function name, the suite follows the folder
+  and file); a parametrized test is one case with one result per parameter set. Re-runs add results to the same cases.
+- **It can never turn CI red.** Without the token (pull requests from forks, Dependabot, or not configured), outside a pull
+  request to `main`, or when Qase is unreachable or refuses the token, nothing is reported and the tests run as usual.
+  The test jobs run even if the Qase job fails (`if: !cancelled()`), so a failed Qase job can not make a required check
+  "skipped". `pull_request_target` is not used, so code from a fork never gets the secret.
+- **Settings in GitHub** (Settings, Secrets and variables, Actions): the secret `QASE_TESTOPS_API_TOKEN` and the variable
+  `QASE_TESTOPS_PROJECT=ELB`. The token is passed only to the steps that run tests or the Qase script, never to a whole job.
+  Rotate it in Qase if it ever leaks.
+- **Locally** reporting is off. To report a local run on purpose, set the variables in the shell (never in a file in git):
+
+```powershell
+$env:QASE_MODE = "testops"; $env:QASE_TESTOPS_PROJECT = "ELB"; $env:QASE_TESTOPS_API_TOKEN = "<your token>"
+pytest tests/unit/test_fines.py --no-cov
+```
 
 ## Security and maintenance
 
