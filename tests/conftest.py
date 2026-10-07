@@ -75,6 +75,22 @@ def pytest_collection_modifyitems(items):
             item.add_marker(pytest.mark.contract)
         if "security" in parts:
             item.add_marker(pytest.mark.security)
+        _refuse_a_huge_parameter(item)
+
+
+MAX_PARAMETER_LENGTH = 1000
+
+
+def _refuse_a_huge_parameter(item) -> None:
+    """A pytest parameter is also sent to the test report (Qase). A 100 000 character one made Qase refuse a whole batch
+    of results (TEST-004), so a long value must be built inside the test and looked up by a short name."""
+    callspec = getattr(item, "callspec", None)
+    for name, value in (callspec.params if callspec else {}).items():
+        if isinstance(value, str | bytes) and len(value) > MAX_PARAMETER_LENGTH:
+            raise pytest.UsageError(
+                f"{item.nodeid}: the parameter '{name}' is {len(value)} long (limit {MAX_PARAMETER_LENGTH}); "
+                "pass a short name and build the value inside the test"
+            )
 
 
 @pytest.fixture(scope="session")

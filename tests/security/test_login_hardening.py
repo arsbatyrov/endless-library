@@ -255,34 +255,25 @@ def auth_from(response) -> dict:
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
-@pytest.mark.parametrize(
-    "raw",
-    [
-        b"",
-        b"{",
-        b"{broken",
-        b"null",
-        b"\xff\xfe\x00\x00",
-        b'{"username":"ann","password":"x"}\x00',
-        b'{"username":"ann\x00","password":"x"}',
-        b"[" * 20000 + b"]" * 20000,
-        b'{"a":' * 5000 + b"1" + b"}" * 5000,
-        b"A" * 100_000,
-    ],
-    ids=[
-        "empty",
-        "open-brace",
-        "broken-object",
-        "null",
-        "invalid-utf8",
-        "trailing-nul",
-        "nul-in-login",
-        "array-nesting-20000",
-        "object-nesting-5000",
-        "100k-bytes",
-    ],
-)
-def test_malformed_bodies_get_a_client_error_never_a_server_error(client, user, raw):
+# The bodies are looked up by a SHORT name: a pytest parameter is also sent to the test report (Qase), and a 100 000
+# character parameter made the whole batch of results be refused.
+MALFORMED_BODIES = {
+    "empty": b"",
+    "open-brace": b"{",
+    "broken-object": b"{broken",
+    "null": b"null",
+    "invalid-utf8": b"\xff\xfe\x00\x00",
+    "trailing-nul": b'{"username":"ann","password":"x"}\x00',
+    "nul-in-login": b'{"username":"ann\x00","password":"x"}',
+    "array-nesting-20000": b"[" * 20000 + b"]" * 20000,
+    "object-nesting-5000": b'{"a":' * 5000 + b"1" + b"}" * 5000,
+    "100k-bytes": b"A" * 100_000,
+}
+
+
+@pytest.mark.parametrize("name", list(MALFORMED_BODIES))
+def test_malformed_bodies_get_a_client_error_never_a_server_error(client, user, name):
+    raw = MALFORMED_BODIES[name]
     response = client.post("/auth/login", content=raw, headers={"Content-Type": "application/json"})
 
     assert 400 <= response.status_code < 500, response.status_code
