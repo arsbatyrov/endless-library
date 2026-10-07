@@ -180,7 +180,9 @@ INJECTION = [
     "ann​",  # zero-width space
     "👾" * 20,
     "İ",  # a character whose lower-casing differs between systems
-    " ",
+    pytest.param(
+        " ", id="single_space"
+    ),  # a whitespace-only id would be refused by Qase (see tests/conftest.py)
     "ann ",
     " ann",
     "0",

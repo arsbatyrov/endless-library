@@ -351,3 +351,55 @@ def test_the_pytest_plugin_that_sends_the_results_is_installed_by_the_ci_require
     assert (
         CI.count("pip install -r requirements-dev.txt") >= 4
     )  # every test job installs from that file
+
+
+# ---------- parameters that Qase would refuse (the guard in tests/conftest.py) ----------
+
+
+def item_with(test_id: str, **params):
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        nodeid="tests/x.py::test_x", callspec=SimpleNamespace(id=test_id, params=params)
+    )
+
+
+def guard(item):
+    from tests.conftest import _refuse_a_parameter_qase_would_refuse
+
+    _refuse_a_parameter_qase_would_refuse(item)
+
+
+def test_the_guard_accepts_ordinary_parameters_and_tests_without_parameters():
+    from types import SimpleNamespace
+
+    guard(item_with("abc", value="abc"))
+    guard(item_with("1-2", a=1, b=2))
+    guard(item_with("", value=""))  # an empty value is replaced by the plugin itself
+    guard(SimpleNamespace(nodeid="tests/x.py::test_x"))
+
+
+def test_the_guard_refuses_a_very_long_parameter():
+    with pytest.raises(pytest.UsageError, match="characters long"):
+        guard(item_with("x" * 1001, value="x" * 1001))
+
+
+def test_the_guard_refuses_a_blank_parameter():
+    with pytest.raises(pytest.UsageError, match="whitespace"):
+        guard(item_with(" ", value=" "))
+
+
+def test_the_guard_judges_what_the_plugin_will_send_not_the_raw_value():
+    """The plugin sends the parts of the id split at hyphens when their number equals the number of parameters,
+    otherwise the raw values: the id 'single-space' (two parts, one parameter) sends the raw blank value."""
+    with pytest.raises(pytest.UsageError, match="whitespace"):
+        guard(item_with("single-space", payload=" "))
+    guard(
+        item_with("single_space", payload=" ")
+    )  # one part, one parameter: the readable id is sent
+
+
+def test_the_hostile_login_test_has_a_readable_id_for_the_blank_login():
+    source = (ROOT / "tests" / "security" / "test_login_hardening.py").read_text(encoding="utf-8")
+
+    assert 'id="single_space"' in source

@@ -354,7 +354,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-1533 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+1538 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 
@@ -371,7 +371,7 @@ pytest tests/smoke -m smoke --no-cov         # tests of the deployed cluster (af
 
 | Folder | Tests | Level | What it checks | Where it runs in CI |
 |---|---|---|---|---|
-| `tests/unit` | 325 | unit | service logic, fines, log format, password hashing and policy, JWT tokens, the login guard, the command line, deployment files, the Qase reporting script and workflow | Tests |
+| `tests/unit` | 330 | unit | service logic, fines, log format, password hashing and policy, JWT tokens, the login guard, the command line, deployment files, the Qase reporting script and workflow | Tests |
 | `tests/api` | 593 | API (in memory) | status codes, format, errors, Redis cache, ranking, metrics, contract regressions | Tests |
 | `tests/db` | 42 | database | the database's own constraints (uniqueness, foreign keys, account rules), recovery after dropped connections | Tests |
 | `tests/migrations` | 11 | migrations | apply from scratch, rollback, match with the models | Tests |
@@ -455,6 +455,11 @@ their history can be seen there.
   request to `main`, or when Qase is unreachable or refuses the token, nothing is reported and the tests run as usual.
   The test jobs run even if the Qase job fails (`if: !cancelled()`), so a failed Qase job can not make a required check
   "skipped". `pull_request_target` is not used, so code from a fork never gets the secret.
+- **Parameters of parametrized tests go to Qase too.** A very long value (the old malformed-body test used 100 000 characters)
+  or a blank one (a single space: Qase trims it to nothing and answers "must be a string") makes Qase refuse the **whole batch of
+  200 results**. `tests/conftest.py` therefore stops the collection with a clear message for such a parameter: build a long value
+  inside the test and look it up by a short name, and give a blank one a readable id without a hyphen
+  (`pytest.param(" ", id="single_space")`).
 - **Settings in GitHub** (Settings, Secrets and variables, Actions): the secret `QASE_TESTOPS_API_TOKEN` and the variable
   `QASE_TESTOPS_PROJECT=ELB`. The token is passed only to the steps that run tests or the Qase script, never to a whole job.
   Rotate it in Qase if it ever leaks.
