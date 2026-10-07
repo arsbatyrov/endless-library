@@ -75,6 +75,40 @@ def pytest_collection_modifyitems(items):
             item.add_marker(pytest.mark.contract)
         if "security" in parts:
             item.add_marker(pytest.mark.security)
+        _refuse_a_parameter_qase_would_refuse(item)
+
+
+MAX_PARAMETER_LENGTH = 1000
+
+
+def _reported_parameters(callspec) -> list[str]:
+    """What the Qase plugin will send as the values of the parameters (it mirrors qase.pytest.plugin._set_params):
+    the parts of the test id when their number equals the number of parameters, otherwise the values themselves."""
+    parts = callspec.id.split("-")
+    if len(parts) == len(callspec.params):
+        return parts
+    return [str(value) for value in callspec.params.values()]
+
+
+def _refuse_a_parameter_qase_would_refuse(item) -> None:
+    """Qase refuses a whole batch of 200 results because of one bad parameter (TEST-004):
+    - a very long value (100 000 characters): build it inside the test and look it up by a short name;
+    - a blank one ("must be a string": Qase trims it to nothing; only an empty one is replaced by the plugin): give
+      the case a readable id WITHOUT a hyphen, for example pytest.param(" ", id="single_space")."""
+    callspec = getattr(item, "callspec", None)
+    if not callspec:
+        return
+    for value in _reported_parameters(callspec):
+        if len(value) > MAX_PARAMETER_LENGTH:
+            raise pytest.UsageError(
+                f"{item.nodeid}: a parameter is {len(value)} characters long (limit {MAX_PARAMETER_LENGTH}); "
+                "pass a short name and build the value inside the test"
+            )
+        if value and not value.strip():
+            raise pytest.UsageError(
+                f"{item.nodeid}: a parameter is only whitespace; give the case an id without a hyphen, "
+                "for example pytest.param(' ', id='single_space')"
+            )
 
 
 @pytest.fixture(scope="session")

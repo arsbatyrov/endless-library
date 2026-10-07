@@ -196,10 +196,21 @@ def test_token_issued_in_the_future_is_rejected():
         decode_access_token(forge(base_payload(iat=future, exp=future + 900)))
 
 
-@pytest.mark.parametrize("garbage", ["", "abc", "a.b.c", "....", "Bearer x", "x" * 5000])
-def test_garbage_is_rejected_with_a_token_error(garbage):
+# Looked up by a short name: a pytest parameter is also sent to the test report (Qase), which refuses very long ones.
+GARBAGE = {
+    "empty": "",
+    "abc": "abc",
+    "three-parts": "a.b.c",
+    "dots": "....",
+    "bearer-word": "Bearer x",
+    "5000-characters": "x" * 5000,
+}
+
+
+@pytest.mark.parametrize("name", list(GARBAGE))
+def test_garbage_is_rejected_with_a_token_error(name):
     with pytest.raises(TokenError):
-        decode_access_token(garbage)
+        decode_access_token(GARBAGE[name])
 
 
 def test_changing_the_secret_invalidates_issued_tokens(monkeypatch):
