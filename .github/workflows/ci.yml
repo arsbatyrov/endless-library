@@ -153,6 +153,7 @@ jobs:
         run: pytest --cov-report=xml --cov-fail-under=95
         env:
           QASE_TESTOPS_API_TOKEN: ${{ secrets.QASE_TESTOPS_API_TOKEN }}
+          QASE_DEBUG: "true"  # DIAGNOSTIC (TEST-004): to be removed
 
       - name: Upload coverage report
         if: always()
