@@ -341,3 +341,13 @@ def test_job_names_of_the_required_checks_are_unchanged():
         "Docker images (build and smoke test)",
     ]:
         assert f"    name: {name}\n" in CI
+
+
+def test_the_pytest_plugin_that_sends_the_results_is_installed_by_the_ci_requirements():
+    """Without it pytest silently ignores every QASE_* setting: the run is created, but stays empty (found in PR 83)."""
+    requirements = (ROOT / "requirements-dev.txt").read_text(encoding="utf-8")
+
+    assert re.search(r"(?m)^qase-pytest==\d+\.\d+\.\d+$", requirements)
+    assert (
+        CI.count("pip install -r requirements-dev.txt") >= 4
+    )  # every test job installs from that file
