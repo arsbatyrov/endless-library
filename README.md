@@ -354,7 +354,7 @@ UPDATE_OPENAPI_SNAPSHOT=1 pytest tests/contract/test_openapi_snapshot.py -m cont
 
 ## Tests
 
-1558 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
+1560 tests in total. A running database and Redis are required (`docker compose up -d db redis`). Tests use a
 separate database `<name>_test` and Redis database number 15, create and clean them themselves; working data is not
 touched.
 
@@ -367,11 +367,13 @@ pytest tests/contract -m contract --no-cov   # OpenAPI contract tests
 pytest tests/smoke -m smoke --no-cov         # tests of the deployed cluster (after k8s/deploy.sh)
 ```
 
+Unknown markers are an error (`--strict-markers`), so a new marker must first be registered in `pytest.ini`; an `xfail` test that starts passing fails the run (`xfail_strict`).
+
 ### What is tested where
 
 | Folder | Tests | Level | What it checks | Where it runs in CI |
 |---|---|---|---|---|
-| `tests/unit` | 348 | unit | service logic, fines, log format, password hashing and policy, JWT tokens, the login guard, the command line, deployment files, the Qase reporting script and workflow | Tests |
+| `tests/unit` | 350 | unit | service logic, fines, log format, password hashing and policy, JWT tokens, the login guard, the command line, deployment files, the Qase reporting script and workflow | Tests |
 | `tests/api` | 595 | API (in memory) | status codes, format, errors, Redis cache, ranking, metrics, contract regressions | Tests |
 | `tests/db` | 42 | database | the database's own constraints (uniqueness, foreign keys, account rules), recovery after dropped connections | Tests |
 | `tests/migrations` | 11 | migrations | apply from scratch, rollback, match with the models | Tests |
