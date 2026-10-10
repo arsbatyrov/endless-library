@@ -48,10 +48,12 @@ from app.cache import cache  # noqa: E402
 from app.database import Base, get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from tests.factories import make_user  # noqa: E402
+from tests.marking import folder_marker  # noqa: E402
 
 # Тесты, использующие любую из этих фикстур (напрямую или через другие), работают с базой.
 DB_FIXTURES = {"engine", "migration_url"}
 REDIS_FIXTURES = {"redis_cache", "redis_client"}
+TESTS_ROOT = Path(__file__).resolve().parent
 
 
 def pytest_collection_modifyitems(items):
@@ -66,15 +68,9 @@ def pytest_collection_modifyitems(items):
             item.add_marker(pytest.mark.db)
         if REDIS_FIXTURES & set(item.fixturenames):
             item.add_marker(pytest.mark.redis)
-        parts = Path(str(item.fspath)).parts
-        if "ui" in parts:
-            item.add_marker(pytest.mark.ui)
-        if "smoke" in parts:
-            item.add_marker(pytest.mark.smoke)
-        if "contract" in parts:
-            item.add_marker(pytest.mark.contract)
-        if "security" in parts:
-            item.add_marker(pytest.mark.security)
+        folder = folder_marker(Path(item.path).resolve(), TESTS_ROOT)
+        if folder:
+            item.add_marker(getattr(pytest.mark, folder))
         _refuse_a_parameter_qase_would_refuse(item)
 
 
